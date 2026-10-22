@@ -40,6 +40,7 @@ export interface Settings {
   safeR18: SafeMode
   safeSensitive: SafeMode
   cacheMB: number // NAS pictures kept on the phone
+  autoUpdate: boolean // look for a new release at start (GitHub)
   // Library view (kept between sessions)
   libRatings: RatingPick[]
   libRatingsPrev: RatingPick[] | null

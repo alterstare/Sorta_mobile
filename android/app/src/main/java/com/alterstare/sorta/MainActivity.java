@@ -43,4 +43,25 @@ public class MainActivity extends BridgeActivity {
             }
         });
     }
+
+    // Notification permission (asked at the first 올리기) denied → say once
+    // where the progress went.
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == SortaPlugin.NOTIFY_REQ && grantResults.length > 0
+            && grantResults[0] != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            android.widget.Toast.makeText(this,
+                "알림 권한이 꺼져 있어 올리기 진행 알림이 보이지 않습니다. 올리기는 계속되며, 휴대폰 설정 › 앱 › Sorta › 알림에서 켤 수 있습니다.",
+                android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // Closed for good (not a configuration change): the upload dies with the
+    // WebView — drop the service and its notification.
+    @Override
+    public void onDestroy() {
+        if (isFinishing()) UploadService.stop(this);
+        super.onDestroy();
+    }
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { JobSummary, LibStatus } from '../../shared/ipc'
+import type { JobSummary, LibStatus, UpdateStatus } from '../../shared/ipc'
 import type { ImageItem, LibraryFilter, LibraryNode, LibraryTree, ProgressEvent, RatingPick, ReviewKind, Settings, SortDir, SortKey } from '../../shared/types'
 
 export type View = 'library' | 'review' | 'manage' | 'settings' | 'upload'
@@ -13,6 +13,7 @@ interface State {
   view: View
   setView: (v: View) => void
   status: LibStatus
+  update: UpdateStatus
   settings: Settings | null
   jobs: Record<number, Job>
   activityOpen: boolean
@@ -73,6 +74,7 @@ export const useStore = create<State>((set, get) => ({
   view: 'library',
   setView: (view) => set({ view, menuOpen: false, viewerIndex: null }),
   status: { state: 'loading' },
+  update: { state: 'idle' },
   settings: null,
   jobs: {},
   activityOpen: false,

@@ -54,6 +54,10 @@ interface SortaPlugin {
   cacheInfo(): Promise<{ bytes: number; files: number }>
   clearCache(): Promise<void>
   setCacheLimit(o: { bytes: number }): Promise<void>
+  uploadService(o: { active: boolean; title?: string; text?: string; done?: number; total?: number }): Promise<void>
+  downloadUpdate(o: { url: string; name: string }): Promise<{ path: string }>
+  installApk(o: { path: string }): Promise<{ needPermission?: boolean }>
+  addListener(ev: 'updateProgress', cb: (e: { done: number; total: number }) => void): Promise<PluginListenerHandle>
   addListener(ev: 'back', cb: () => void): Promise<PluginListenerHandle>
   addListener(ev: 'resume' | 'pause', cb: () => void): Promise<PluginListenerHandle>
 }

@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   safeR18: 'blur',
   safeSensitive: 'show',
   cacheMB: 1024,
+  autoUpdate: true,
   libRatings: ['general', 'sensitive', 'r18'],
   libRatingsPrev: null,
   libGroups: [],

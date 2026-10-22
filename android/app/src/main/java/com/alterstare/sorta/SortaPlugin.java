@@ -350,6 +350,99 @@ public class SortaPlugin extends Plugin {
         });
     }
 
+    // ---- 올리기 in the background ----
+
+    private boolean askedNotify;
+    static final int NOTIFY_REQ = 7302;
+
+    // active: an upload runs → keep the foreground service up and its
+    // notification current; false → stop it.
+    @PluginMethod
+    public void uploadService(PluginCall call) {
+        android.content.Context ctx = getContext();
+        if (!Boolean.TRUE.equals(call.getBoolean("active", false))) {
+            UploadService.stop(ctx);
+            call.resolve();
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= 33 && !askedNotify
+            && ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            askedNotify = true;
+            androidx.core.app.ActivityCompat.requestPermissions(getActivity(), new String[] {Manifest.permission.POST_NOTIFICATIONS}, NOTIFY_REQ);
+        }
+        UploadService.update(ctx, call.getString("title", ""), call.getString("text", ""), call.getInt("done", 0), call.getInt("total", 0));
+        call.resolve();
+    }
+
+    // Service started / stopped → the WebView's renderer priority.
+    static void onUploadService() {
+        SortaPlugin p = instance;
+        if (p == null) return;
+        p.getActivity().runOnUiThread(() -> UploadService.applyPriority(p.getBridge().getWebView()));
+    }
+
+    // ---- 자동 업데이트 ----
+
+    // A release APK → the app cache (progress as "updateProgress" events).
+    @PluginMethod
+    public void downloadUpdate(PluginCall call) {
+        bg(call, () -> {
+            String url = need(call, "url");
+            File out = new File(getContext().getCacheDir(), need(call, "name"));
+            File part = new File(out.getPath() + ".part");
+            okhttp3.OkHttpClient http = new okhttp3.OkHttpClient.Builder().followRedirects(true).build();
+            try (okhttp3.Response r = http.newCall(new okhttp3.Request.Builder().url(url).build()).execute()) {
+                if (!r.isSuccessful() || r.body() == null) throw new IOException("HTTP " + r.code());
+                long total = r.body().contentLength();
+                long done = 0;
+                long lastSent = 0;
+                try (java.io.InputStream in = r.body().byteStream(); java.io.OutputStream o = new java.io.FileOutputStream(part)) {
+                    byte[] buf = new byte[64 * 1024];
+                    int n;
+                    while ((n = in.read(buf)) != -1) {
+                        o.write(buf, 0, n);
+                        done += n;
+                        if (done - lastSent > 256 * 1024) {
+                            lastSent = done;
+                            JSObject ev = new JSObject();
+                            ev.put("done", done);
+                            ev.put("total", total);
+                            notifyListeners("updateProgress", ev);
+                        }
+                    }
+                }
+            }
+            if (out.exists() && !out.delete()) throw new IOException("cannot replace " + out);
+            if (!part.renameTo(out)) throw new IOException("rename failed");
+            JSObject o = new JSObject();
+            o.put("path", out.getAbsolutePath());
+            call.resolve(o);
+        });
+    }
+
+    // Hand the APK to the system installer. Without "install unknown apps"
+    // allowed, its settings page opens first.
+    @PluginMethod
+    public void installApk(PluginCall call) {
+        android.content.Context ctx = getContext();
+        File f = new File(need(call, "path"));
+        JSObject o = new JSObject();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !ctx.getPackageManager().canRequestPackageInstalls()) {
+            Intent s = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + ctx.getPackageName()));
+            s.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ctx.startActivity(s);
+            o.put("needPermission", true);
+            call.resolve(o);
+            return;
+        }
+        Uri uri = androidx.core.content.FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".fileprovider", f);
+        Intent i = new Intent(Intent.ACTION_VIEW);
+        i.setDataAndType(uri, "application/vnd.android.package-archive");
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+        ctx.startActivity(i);
+        call.resolve(o);
+    }
+
     // ---- folder picker / storage ----
 
     @PluginMethod
@@ -451,7 +544,10 @@ public class SortaPlugin extends Plugin {
     @PluginMethod
     public void exitApp(PluginCall call) {
         call.resolve();
-        getActivity().runOnUiThread(() -> getActivity().finish());
+        getActivity().runOnUiThread(() -> {
+            UploadService.stop(getActivity());
+            getActivity().finish();
+        });
     }
 
     @PluginMethod

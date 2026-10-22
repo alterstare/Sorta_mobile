@@ -147,8 +147,8 @@ export function GroupShotDialog(): JSX.Element | null {
   )
 }
 
-// 삭제 확인: hidden on the phone at once; the PC's Sorta sends the originals
-// to its recycle bin when it takes the change (restorable there).
+// 삭제 확인: hidden on the phone at once; the PC's Sorta moves the originals
+// into <정리 폴더>/삭제됨 when it takes the change (restorable from there).
 export function TrashDialog(): JSX.Element | null {
   const ids = useStore((s) => s.trashDialog)
   const setIds = useStore((s) => s.setTrashDialog)
@@ -160,7 +160,7 @@ export function TrashDialog(): JSX.Element | null {
     await window.api.trash(ids)
     const st = useStore.getState()
     st.setSelecting(false)
-    st.showToast({ ok: true, message: `${ids.length}장 삭제 · PC의 Sorta가 휴지통으로 보냅니다` })
+    st.showToast({ ok: true, message: `${ids.length}장 삭제 · PC의 Sorta가 삭제됨 폴더로 옮깁니다` })
   }
   return (
     <div className="modal-back" onMouseDown={close}>
@@ -169,7 +169,7 @@ export function TrashDialog(): JSX.Element | null {
           <h2>{ids.length}장 삭제</h2>
         </div>
         <div className="row-desc">
-          휴대폰 목록에서 바로 빠지고, PC의 Sorta가 이 변경을 받으면 원본을 PC 휴지통으로 보냅니다. 휴대폰에서는 되돌릴 수 없습니다.
+          휴대폰 목록에서 바로 빠지고, PC의 Sorta가 이 변경을 받으면 원본을 정리 폴더의 삭제됨 폴더로 옮깁니다. 휴대폰에서는 되돌릴 수 없고, 삭제됨 폴더에서 꺼내면 돌아옵니다.
         </div>
         <div className="modal-foot">
           <button className="btn" onClick={close}>

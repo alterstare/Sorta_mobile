@@ -44,6 +44,8 @@ export default function App(): JSX.Element {
     const offProgress = window.api.onProgress(onProgress)
     const offToast = window.api.onToast((t) => useStore.getState().showToast(t))
     const offChanged = window.api.onLibraryChanged(() => void refreshLibrary())
+    useStore.setState({ update: window.api.updateStatus() })
+    const offUpdate = window.api.onUpdate((update) => useStore.setState({ update }))
     const offStatus = window.api.onStatus((status) => {
       useStore.setState({ status })
       void refreshLibrary()
@@ -67,6 +69,7 @@ export default function App(): JSX.Element {
       offToast()
       offChanged()
       offStatus()
+      offUpdate()
       void back.then((h) => h.remove())
     }
   }, [load, onProgress, refreshLibrary])

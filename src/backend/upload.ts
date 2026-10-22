@@ -64,28 +64,41 @@ export function uploadAll(): Promise<JobSummary> {
     const todo = (await uploadList()).filter((f) => !f.uploaded)
     if (!todo.length) return { ok: true, message: '올릴 그림이 없습니다' }
     await native.fsMkdir({ path: s.uploadTo })
-    const names = new Map((await native.fsReaddir({ path: s.uploadTo })).entries.filter((e) => e.isFile).map((e) => [e.name.toLowerCase(), e.size]))
+    const names = new Map(
+      (await native.fsReaddir({ path: s.uploadTo })).entries.filter((e) => e.isFile).map((e) => [e.name.toLowerCase(), e.size])
+    )
     const d = loadDone()
     let ok = 0
     let skipped = 0
     const failed: string[] = []
-    for (let i = 0; i < todo.length; i++) {
-      if (signal.aborted) break
-      const f = todo[i]
-      report(i, todo.length, `NAS에 올리기 · ${f.name}`)
-      try {
-        const t = await target(s.uploadTo, names, f)
-        if (!t.skip) {
-          const r = await native.upload({ from: f.path, to: t.path })
-          if (r.size !== f.size) throw new Error('크기가 다릅니다')
-          names.set(t.path.split('/').pop()!.toLowerCase(), f.size)
-          ok++
-        } else skipped++
-        d[f.path] = { size: f.size, mtime: f.mtime, to: t.path }
-        saveDone(d)
-      } catch (e) {
-        failed.push(`${f.name}: ${String((e as Error)?.message ?? e)}`)
+    // Leaving the app doesn't stop it: a foreground service keeps the process
+    // up and shows the progress in the notification bar.
+    const note = (i: number, name: string): void =>
+      void native
+        .uploadService({ active: true, title: 'NAS에 올리는 중', text: `${i + 1} / ${todo.length} · ${name}`, done: i, total: todo.length })
+        .catch(() => {})
+    try {
+      for (let i = 0; i < todo.length; i++) {
+        if (signal.aborted) break
+        const f = todo[i]
+        report(i, todo.length, `NAS에 올리기 · ${f.name}`)
+        note(i, f.name)
+        try {
+          const t = await target(s.uploadTo, names, f)
+          if (!t.skip) {
+            const r = await native.upload({ from: f.path, to: t.path })
+            if (r.size !== f.size) throw new Error('크기가 다릅니다')
+            names.set(t.path.split('/').pop()!.toLowerCase(), f.size)
+            ok++
+          } else skipped++
+          d[f.path] = { size: f.size, mtime: f.mtime, to: t.path }
+          saveDone(d)
+        } catch (e) {
+          failed.push(`${f.name}: ${String((e as Error)?.message ?? e)}`)
+        }
       }
+    } finally {
+      void native.uploadService({ active: false }).catch(() => {})
     }
     report(todo.length, todo.length, 'NAS에 올리기 완료')
     const parts = [`${ok}장 올리기 완료`]

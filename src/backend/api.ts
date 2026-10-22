@@ -13,6 +13,7 @@ import { cancelJob, emitChanged, emitToast, job, on } from './bus'
 import { imgUrl, isNas, joinPath, localThumbUrl, native, rawUrl, thumbUrl } from './native'
 import { loadSettings, saveSettings } from './settings'
 import { deleteUploaded, uploadAll, uploadList } from './upload'
+import { checkForUpdate, installUpdate, onUpdate, updateStatus } from './update'
 
 let model = new Model()
 let edits: Edits | null = null
@@ -333,6 +334,11 @@ const api: Api = {
   },
   localThumbUrl,
 
+  updateStatus,
+  onUpdate,
+  checkUpdate: () => checkForUpdate(true),
+  installUpdate,
+
   cacheInfo: () => native.cacheInfo(),
   clearCache: () => native.clearCache(),
   exit: () => {
@@ -358,6 +364,7 @@ export function installBackend(): void {
   void native.addListener('pause', () => void edits?.flush()).catch(() => {})
   void native.addListener('resume', () => void reload()).catch(() => {})
   void reload()
+  setTimeout(() => void checkForUpdate(), 4000)
 }
 
 export { isNas }

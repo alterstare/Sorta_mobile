@@ -14,6 +14,8 @@ export default function ActivityBar(): JSX.Element | null {
   const toggle = useStore((s) => s.toggleActivity)
   const clearDone = useStore((s) => s.clearDoneJobs)
   const ref = useRef<HTMLDivElement>(null)
+  const update = useStore((s) => s.update)
+  const showUpdate = update.state === 'downloading' || update.state === 'downloaded'
   useBack(open, toggle)
   useEffect(() => {
     if (!open) return
@@ -23,12 +25,16 @@ export default function ActivityBar(): JSX.Element | null {
     document.addEventListener('pointerdown', down, true)
     return () => document.removeEventListener('pointerdown', down, true)
   }, [open, toggle])
-  if (!jobs.length) return null
+  if (!jobs.length && !showUpdate) return null
   const running = jobs.filter((j) => j.state === 'running' || j.state === 'queued')
   const cur = running[0]
   const summary = cur
     ? `${cur.label}${cur.total > 0 ? ` · ${pct(cur.done, cur.total)}%` : ' · 진행 중…'}`
-    : `작업 ${jobs.length}개 · 진행 중인 작업 없음`
+    : update.state === 'downloaded'
+      ? `새 버전 v${update.version} 준비 완료`
+      : update.state === 'downloading'
+        ? `업데이트 v${update.version} 받는 중 · ${update.percent ?? 0}%`
+        : `작업 ${jobs.length}개 · 진행 중인 작업 없음`
   const sub = (j: (typeof jobs)[number]): string =>
     j.state === 'failed'
       ? `오류: ${j.error ?? '실패'}`
@@ -52,6 +58,30 @@ export default function ActivityBar(): JSX.Element | null {
             </div>
           </div>
           <div className="activity-panel-list">
+            {showUpdate && (
+              <div className="activity-row update">
+                <div className="activity-row-main">
+                  <div className="activity-row-title">
+                    {update.state === 'downloaded' ? '새 버전 준비 완료' : '업데이트 받는 중'} · v{update.version}
+                  </div>
+                  <div className="activity-row-sub">
+                    {update.error ?? (update.state === 'downloaded' ? '설치를 누르면 새 버전으로 업데이트합니다' : `${update.percent ?? 0}%`)}
+                  </div>
+                  {update.state === 'downloading' && (
+                    <div className="activity-bar-track">
+                      <div className="activity-bar-fill" style={{ width: `${update.percent ?? 0}%` }} />
+                    </div>
+                  )}
+                </div>
+                {update.state === 'downloaded' && (
+                  <div className="flat-group">
+                    <button className="mini primary-text" onClick={() => void window.api.installUpdate()}>
+                      설치
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {jobs.map((j) => (
               <div key={j.jobId} className={`activity-row ${j.state}`}>
                 <div className="activity-row-main">
@@ -79,6 +109,13 @@ export default function ActivityBar(): JSX.Element | null {
       <div className="activity-bar" onClick={toggle}>
         <span className="activity-bar-summary">{summary}</span>
         {running.length > 0 && <span className="activity-bar-count">{running.length}개 진행</span>}
+        {update.state === 'downloaded' && (
+          <span className="flat-group" onClick={(e) => e.stopPropagation()}>
+            <button className="mini primary-text" onClick={() => void window.api.installUpdate()}>
+              설치
+            </button>
+          </span>
+        )}
         <span className="activity-bar-caret">{open ? <ArrowDownIcon /> : <ArrowUpIcon />}</span>
       </div>
     </div>

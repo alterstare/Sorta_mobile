@@ -29,7 +29,7 @@ function guess(root: string, nasId: string): string | null {
 
 export default function SettingsView(): JSX.Element {
   const pageRef = useKeptScroll<HTMLDivElement>('settings')
-  const { settings, saveSettings, showToast, status } = useStore()
+  const { settings, saveSettings, showToast, status, update } = useStore()
   const [conns, setConns] = useState<NasConnInfo[]>([])
   const [editing, setEditing] = useState<Partial<NasConnInfo> | null>(null)
   const [browse, setBrowse] = useState<{ title: string; start: string; onPick: (p: string) => void } | null>(null)
@@ -265,7 +265,39 @@ export default function SettingsView(): JSX.Element {
         <div className="row">
           <div className="row-text">
             <div className="row-title">버전</div>
-            <div className="row-desc">Sorta 모바일 {version}</div>
+            <div className="row-desc">
+              Sorta 모바일 {version}
+              {update.state === 'checking' && ' · 확인 중…'}
+              {update.state === 'none' && ' · 최신 버전입니다'}
+              {update.state === 'downloading' && ` · 새 버전 v${update.version} 받는 중 ${update.percent ?? 0}%`}
+              {update.state === 'downloaded' && ` · 새 버전 v${update.version} 준비 완료`}
+              {update.state === 'error' && ` · 확인하지 못했습니다 (${update.error})`}
+            </div>
+          </div>
+          <div className="flat-group">
+            {update.state === 'downloaded' ? (
+              <button className="mini primary-text" onClick={() => void window.api.installUpdate()}>
+                설치
+              </button>
+            ) : (
+              <button className="mini" disabled={update.state === 'checking' || update.state === 'downloading'} onClick={() => void window.api.checkUpdate()}>
+                <RefreshIcon />
+                업데이트 확인
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="row">
+          <div className="row-text">
+            <div className="row-title">자동 업데이트</div>
+            <div className="row-desc">시작할 때 새 버전을 확인하고, 있으면 받아 둡니다. 설치는 직접 누릅니다.</div>
+          </div>
+          <div className="flat-group">
+            {[false, true].map((v) => (
+              <button key={String(v)} className={`mini ${settings.autoUpdate === v ? 'on' : ''}`} onClick={() => void saveSettings({ autoUpdate: v })}>
+                {v ? '켜기' : '끄기'}
+              </button>
+            ))}
           </div>
         </div>
       </section>

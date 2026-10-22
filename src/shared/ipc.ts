@@ -17,6 +17,13 @@ import type {
   UndoResult
 } from './types'
 
+export interface UpdateStatus {
+  state: 'idle' | 'checking' | 'none' | 'downloading' | 'downloaded' | 'error'
+  version?: string
+  percent?: number
+  error?: string
+}
+
 export interface JobSummary {
   ok: boolean
   message: string
@@ -93,7 +100,7 @@ export interface Api {
   renameAffiliation: (id: number, name: string) => Promise<void>
   placeCharacters: (ids: number[], affiliationId: number | null) => Promise<void>
   pendingEdits: () => number // changes the PC hasn't taken yet
-  // 삭제: hidden here at once; the PC sends the originals to its recycle bin
+  // 삭제: hidden here at once; the PC moves the originals into <정리 폴더>/삭제됨
   trash: (ids: number[]) => Promise<void>
   saveToPhone: (ids: number[]) => Promise<JobSummary> // the originals → Pictures/Sorta
 
@@ -110,6 +117,12 @@ export interface Api {
   uploadAll: () => Promise<JobSummary>
   deleteUploaded: () => Promise<JobSummary>
   localThumbUrl: (path: string, mtime: number) => string
+
+  // 자동 업데이트
+  updateStatus: () => UpdateStatus
+  onUpdate: (cb: (s: UpdateStatus) => void) => () => void
+  checkUpdate: () => Promise<UpdateStatus>
+  installUpdate: () => Promise<void>
 
   cacheInfo: () => Promise<{ bytes: number; files: number }>
   clearCache: () => Promise<void>

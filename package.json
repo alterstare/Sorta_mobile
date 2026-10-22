@@ -1,6 +1,6 @@
 {
   "name": "sorta-mobile",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Sorta for Android (Capacitor): browse, review and upload the pictures Sorta sorted on a NAS (WebDAV)",
   "author": "alterstare",
   "license": "MIT",
