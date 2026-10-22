@@ -1,6 +1,7 @@
-// Right-click menu at the cursor, with one level of submenus (as in
-// Halftone). Closes on outside click, Esc, scroll, resize or a leaf click.
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+// Long-press menu with one level of sub-menus (as in Halftone). Closes on a
+// tap beside it, Android back or a leaf tap.
+import { useLayoutEffect, useRef, useState } from 'react'
+import { useBack } from '../touch'
 import type { JSX, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { KeyboardArrowRightIcon } from './icons'
@@ -77,43 +78,19 @@ function Row({ item, onClose }: { item: MenuItem; onClose: () => void }): JSX.El
   )
 }
 
-export default function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuItem[]; onClose: () => void }): JSX.Element {
-  const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ x, y })
-  useEffect(() => {
-    const el = ref.current
-    if (el) {
-      const r = el.getBoundingClientRect()
-      setPos({ x: Math.max(4, Math.min(x, window.innerWidth - r.width - 8)), y: Math.max(4, Math.min(y, window.innerHeight - r.height - 8)) })
-    }
-    const close = (): void => onClose()
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('mousedown', close)
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-    window.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('mousedown', close)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [x, y, onClose])
+// On the phone: centred over a dim backdrop (a tap beside it or Android back
+// closes it); sub-menus open below their row.
+export default function ContextMenu({ items, onClose }: { x: number; y: number; items: MenuItem[]; onClose: () => void }): JSX.Element {
+  useBack(true, onClose)
   return createPortal(
-    <div
-      ref={ref}
-      className="ctx-menu"
-      style={{ left: pos.x, top: pos.y }}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      {items.map((it, i) => (
-        <Row key={i} item={it} onClose={onClose} />
-      ))}
-    </div>,
+    <>
+      <div className="ctx-back" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
+      <div className="ctx-menu" onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+        {items.map((it, i) => (
+          <Row key={i} item={it} onClose={onClose} />
+        ))}
+      </div>
+    </>,
     document.body
   )
 }

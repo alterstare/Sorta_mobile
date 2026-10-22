@@ -4,6 +4,7 @@
 import { useCallback, useState } from 'react'
 import type { JSX } from 'react'
 import { useStore } from '../store'
+import { useBack } from '../touch'
 import type { ImageItem } from '../../../shared/types'
 import ContextMenu from './ContextMenu'
 import type { MenuItem } from './ContextMenu'
@@ -86,6 +87,7 @@ export function GroupShotDialog(): JSX.Element | null {
       void window.api.seriesNames().then(setNames)
     }
   }
+  useBack(!!d, () => setD(null))
   if (!d) return null
   const close = (): void => setD(null)
   const go = async (): Promise<void> => {
@@ -148,6 +150,7 @@ export function NewGroupDialog(): JSX.Element | null {
     setWasOpen(open)
     setName(rename?.name ?? '')
   }
+  useBack(open, () => (setIds(null), setRename(null)))
   if (!open) return null
   const close = (): void => (setIds(null), setRename(null))
   const done = async (): Promise<void> => {

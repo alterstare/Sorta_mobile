@@ -62,7 +62,7 @@ export default function Viewer({ items }: { items: ImageItem[] }): JSX.Element |
           .map((c, i) => (
             <span key={i}>
               {c.name} ({STATUS[c.status]}
-              {c.confidence !== null ? ` ${Math.round(c.confidence * 100)}%` : ''})
+              {c.status !== 'confirmed' && c.confidence !== null ? ` ${Math.round(c.confidence * 100)}%` : ''})
             </span>
           ))}
         {img.kind === 'group' && <span>{img.groupSeries ? `단체 사진 · ${img.groupSeries}` : '단체 사진'}</span>}

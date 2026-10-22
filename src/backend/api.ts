@@ -5,6 +5,7 @@ import type { MobileEdit } from '../shared/mobile'
 import { PACK_FORMAT, PACK_VERSION } from '../shared/pack'
 import type { Pack } from '../shared/pack'
 import type { Rating, Settings } from '../shared/types'
+import { SystemBars, SystemBarsStyle } from '@capacitor/core'
 import { Model } from './model'
 import type { MImage } from './model'
 import { Edits } from './edits'
@@ -108,7 +109,7 @@ const api: Api = {
   saveSettings: async (patch: Partial<Settings>) => {
     const before = loadSettings()
     const s = saveSettings(patch)
-    if (patch.theme) void native.setTheme({ dark: patch.theme === 'dark' }).catch(() => {})
+    if (patch.theme) applyTheme(patch.theme)
     if (patch.cacheMB !== undefined) void native.setCacheLimit({ bytes: patch.cacheMB * 1048576 }).catch(() => {})
     const moved = (patch.organizeDir !== undefined && patch.organizeDir !== before.organizeDir) || (patch.nasId !== undefined && patch.nasId !== before.nasId)
     if (moved) {
@@ -318,9 +319,18 @@ const api: Api = {
   }
 }
 
+// System bars follow the app's theme: Capacitor's SystemBars sets the icon
+// style (and repaints the window background), then ours paints the bars' area.
+function applyTheme(t: Settings['theme']): void {
+  void SystemBars.setStyle({ style: t === 'dark' ? SystemBarsStyle.Dark : SystemBarsStyle.Light })
+    .catch(() => {})
+    .finally(() => void native.setTheme({ dark: t === 'dark' }).catch(() => {}))
+}
+
 export function installBackend(): void {
   window.api = api
   const s = loadSettings()
+  applyTheme(s.theme)
   void native.setCacheLimit({ bytes: s.cacheMB * 1048576 }).catch(() => {})
   // Leaving the app: what's waiting goes to the NAS; coming back: the PC may
   // have sorted since.

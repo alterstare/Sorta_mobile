@@ -91,7 +91,7 @@ export default function Review(): JSX.Element {
     await window.api.decide(item.id, all, item.rating !== rating ? rating : null)
     return true
   }
-  const skip = (d = 1): void => setIndex((i) => Math.max(0, Math.min(items.length - 1, i + d)))
+  const skip = (d = 1): void => setIndex((i) => (items.length ? (((Math.min(i, items.length - 1) + d) % items.length) + items.length) % items.length : 0))
   const markOther = (): void => {
     if (item) void window.api.markOther([item.id])
   }
@@ -113,8 +113,8 @@ export default function Review(): JSX.Element {
     enabled: !!item,
     onMove: setDx,
     onLeft: () => {
-      if (index < items.length - 1) fly('left', () => skip(1))
-      else showToast({ ok: true, message: '마지막 그림입니다' })
+      if (items.length > 1) fly('left', () => skip(1))
+      else showToast({ ok: true, message: '건너뛸 다른 그림이 없습니다' })
     },
     onRight: () => {
       const keep = items.length

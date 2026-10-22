@@ -13,6 +13,11 @@ import { nasParts, nasPath } from '../../../backend/native'
 // "/nas/<id>/photo/sorted" → "photo/sorted" (the connection named once above)
 const shown = (p: string): string => (p.startsWith('/nas/') ? '/' + nasParts(p).rel : p)
 
+const fmtBytes = (n: number): string =>
+  n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`
+const fmtTime = (t: number): string =>
+  new Date(t).toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+
 // A PC folder (UNC \\nas\share\sub or a drive path) → the NAS path it most
 // likely is: Synology / QNAP WebDAV serve the shares at the root.
 function guess(root: string, nasId: string): string | null {
@@ -30,7 +35,6 @@ export default function SettingsView(): JSX.Element {
   const [version, setVersion] = useState('')
   const [cache, setCache] = useState<{ bytes: number; files: number } | null>(null)
   useBack(!!editing, () => setEditing(null))
-  useBack(!!browse, () => setBrowse(null))
 
   const loadConns = (): void => void window.api.nasList().then(setConns)
   useEffect(() => {
@@ -105,7 +109,7 @@ export default function SettingsView(): JSX.Element {
             <div className="row-text">
               <div className="row-title">분류 정보 파일</div>
               <div className="row-desc">
-                {new Date(status.createdAt).toLocaleString()} · 그림 {status.files.toLocaleString()}장 · Sorta {status.app}
+                {fmtTime(status.createdAt)} · 그림 {status.files.toLocaleString()}장 · Sorta {status.app}
                 {window.api.pendingEdits() > 0 && ` · PC에 아직 반영되지 않은 변경 ${window.api.pendingEdits()}건`}
               </div>
             </div>
@@ -136,12 +140,12 @@ export default function SettingsView(): JSX.Element {
                   <div className="row-desc">{cur ? `→ ${shown(cur)}` : '연결하지 않았습니다'}</div>
                 </div>
                 <div className="row-stack">
-                  {g && g !== cur && (
-                    <button className="mini" onClick={() => void saveSettings({ roots: { ...settings.roots, [r]: g } })}>
-                      {shown(g)}
-                    </button>
-                  )}
                   <div className="flat-group">
+                    {g && g !== cur && (
+                      <button className="mini primary-text" onClick={() => void saveSettings({ roots: { ...settings.roots, [r]: g } })}>
+                        {shown(g)}(으)로 연결
+                      </button>
+                    )}
                     <button className="mini" onClick={() => pick('원본 폴더', cur || g || '', (p) => void saveSettings({ roots: { ...settings.roots, [r]: p } }))}>
                       <FolderOpenIcon />
                       고르기
@@ -188,15 +192,15 @@ export default function SettingsView(): JSX.Element {
             </div>
           </div>
           <div className="row-stack">
-            {roots
-              .map((r) => settings.roots[r])
-              .filter((p): p is string => !!p && p !== settings.uploadTo)
-              .map((p) => (
-                <button key={p} className="mini" onClick={() => void saveSettings({ uploadTo: p })}>
-                  {shown(p)}
-                </button>
-              ))}
             <div className="flat-group">
+              {roots
+                .map((r) => settings.roots[r])
+                .filter((p): p is string => !!p && p !== settings.uploadTo)
+                .map((p) => (
+                  <button key={p} className="mini primary-text" onClick={() => void saveSettings({ uploadTo: p })}>
+                    {shown(p)}
+                  </button>
+                ))}
               <button className="mini" disabled={!settings.nasId} onClick={() => pick('NAS에 올릴 위치', settings.uploadTo, (p) => void saveSettings({ uploadTo: p }))}>
                 <FolderOpenIcon />
                 고르기
@@ -234,7 +238,7 @@ export default function SettingsView(): JSX.Element {
             <div className="row-title">NAS 그림 캐시</div>
             <div className="row-desc">
               한 번 본 그림과 미리 보기를 휴대폰에 두어 다시 볼 때 빨리 엽니다.
-              {cache && ` 지금 ${Math.round(cache.bytes / 1048576).toLocaleString()} MB (${cache.files.toLocaleString()}개).`}
+              {cache && ` 지금 ${fmtBytes(cache.bytes)} (${cache.files.toLocaleString()}개).`}
             </div>
           </div>
           <div className="row-stack">
@@ -245,17 +249,19 @@ export default function SettingsView(): JSX.Element {
                 </button>
               ))}
             </div>
-            <button
-              className="mini danger"
-              onClick={() =>
-                void window.api
-                  .clearCache()
-                  .then(() => window.api.cacheInfo())
-                  .then((c) => (setCache(c), showToast({ ok: true, message: '캐시를 비웠습니다' })))
-              }
-            >
-              캐시 비우기
-            </button>
+            <div className="flat-group">
+              <button
+                className="mini danger"
+                onClick={() =>
+                  void window.api
+                    .clearCache()
+                    .then(() => window.api.cacheInfo())
+                    .then((c) => (setCache(c), showToast({ ok: true, message: '캐시를 비웠습니다' })))
+                }
+              >
+                캐시 비우기
+              </button>
+            </div>
           </div>
         </div>
         <div className="row">
@@ -309,21 +315,23 @@ function ConnSheet({
   onSaved: (id: string) => void
   onRemoved: () => void
 }): JSX.Element {
-  const showToast = useStore((s) => s.showToast)
+  const [err, setErr] = useState<string | null>(null)
   const [c, setC] = useState<Partial<NasConnInfo>>(conn)
   const [pw, setPw] = useState('')
   const [busy, setBusy] = useState(false)
   const [ok, setOk] = useState<string | null>(null)
-  const set = (patch: Partial<NasConnInfo>): void => (setC((x) => ({ ...x, ...patch })), setOk(null))
+  const set = (patch: Partial<NasConnInfo>): void => (setC((x) => ({ ...x, ...patch })), setOk(null), setErr(null))
   const password = pw || (c.id && conn.hasPassword ? undefined : '')
   const test = async (): Promise<boolean> => {
     setBusy(true)
+    setErr(null)
     try {
       const n = await window.api.nasTest(c, password)
       setOk(`연결 성공 · 폴더 ${n}개`)
       return true
     } catch (e) {
-      showToast({ ok: false, message: `연결 실패: ${String((e as Error).message ?? e)}` })
+      setOk(null)
+      setErr(`연결 실패: ${String((e as Error).message ?? e)}`)
       return false
     } finally {
       setBusy(false)
@@ -357,7 +365,7 @@ function ConnSheet({
           type="password"
           value={pw}
           placeholder={conn.hasPassword ? '바꿀 때만 입력' : ''}
-          onChange={(e) => (setPw(e.target.value), setOk(null))}
+          onChange={(e) => (setPw(e.target.value), setOk(null), setErr(null))}
         />
       </label>
       <button className={`sheet-opt ${c.insecure ? 'on' : ''}`} onClick={() => set({ insecure: !c.insecure })}>
@@ -365,6 +373,7 @@ function ConnSheet({
         인증서 확인 건너뛰기 (자체 서명 https)
       </button>
       {ok && <div className="row-desc ok">{ok}</div>}
+      {err && <div className="sheet-err">{err}</div>}
       <div className="sheet-foot flat-group">
         {conn.id && (
           <button className="mini danger" onClick={() => void window.api.nasRemove(conn.id!).then(onRemoved)}>
@@ -397,6 +406,8 @@ function FolderBrowser({ title, start, onClose, onPick }: { title: string; start
   const [dirs, setDirs] = useState<string[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const { id, rel } = nasParts(path)
+  const up = (): void => setPath(nasPath(id, rel.split('/').slice(0, -1).join('/')))
+  useBack(true, () => (rel ? up() : onClose()))
   useEffect(() => {
     let alive = true
     setDirs(null)
@@ -419,7 +430,7 @@ function FolderBrowser({ title, start, onClose, onPick }: { title: string; start
     <Sheet title={title} onClose={onClose}>
       <div className="fb-path">
         {rel && (
-          <button className="mini icon" title="위로" onClick={() => setPath(nasPath(id, rel.split('/').slice(0, -1).join('/')))}>
+          <button className="mini icon" title="위로" onClick={up}>
             <KeyboardArrowLeftIcon />
           </button>
         )}

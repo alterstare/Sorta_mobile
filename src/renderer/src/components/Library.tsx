@@ -118,13 +118,22 @@ export default function Library(): JSX.Element {
 
   // 전체 / 즐겨찾기 counts within the open node
   const favCount = useMemo(() => images.filter((i) => i.favorite).length, [images])
+  const [allCount, setAllCount] = useState<number | null>(null)
+  useEffect(() => {
+    if (!filter.favOnly) return setAllCount(null)
+    let alive = true
+    void window.api.images({ ...filter, favOnly: false }).then((l) => alive && setAllCount(l.length))
+    return () => {
+      alive = false
+    }
+  }, [filter, images])
   const here = nodeName(filter.node, tree)
   const empty = status.state === 'ready' && tree?.counts.all === 0
 
   return (
     <div className="library">
       <section className="grid-pane">
-        <div className="lib-head">
+        <div className={`lib-head ${status.state === 'ready' ? '' : 'off'}`}>
           <form
             className="search-row"
             onSubmit={(e) => {
@@ -157,7 +166,7 @@ export default function Library(): JSX.Element {
               {filter.dir === 'asc' ? <ArrowUpIcon /> : <ArrowDownIcon />}
             </button>
             <button className={`mini ${!filter.favOnly ? 'on' : ''}`} onClick={() => setFavOnly(false)}>
-              전체 {(filter.favOnly ? null : items.length)?.toLocaleString() ?? ''}
+              전체 {(filter.favOnly ? allCount : items.length)?.toLocaleString() ?? ''}
             </button>
             <button className={`mini fav-chip ${filter.favOnly ? 'on' : ''}`} onClick={() => setFavOnly(!filter.favOnly)}>
               <FavoriteIcon filled />

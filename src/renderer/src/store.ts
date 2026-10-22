@@ -123,6 +123,15 @@ export const useStore = create<State>((set, get) => ({
     set((s) => {
       const jobs = { ...s.jobs }
       jobs[e.jobId] = e.state === 'running' || e.state === 'queued' ? e : { ...e, endedAt: Date.now() }
+      if (e.state === 'done' || e.state === 'cancelled')
+        setTimeout(() => {
+          if (get().activityOpen) return
+          set((s2) => {
+            const j = { ...s2.jobs }
+            if (j[e.jobId]?.state === e.state) delete j[e.jobId]
+            return { jobs: j }
+          })
+        }, 4000)
       return { jobs }
     }),
   showToast: (toast) => {

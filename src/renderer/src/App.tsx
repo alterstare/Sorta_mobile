@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import type { JSX } from 'react'
 import { useStore } from './store'
 import type { View } from './store'
-import { popBack, useBack, useSwipe } from './touch'
+import { popBack, useBack } from './touch'
 import { CloseIcon, MenuIcon, PersonIcon, PhotoLibraryIcon, SettingsIcon, UploadIcon } from './components/icons'
 import Library from './components/Library'
 import ManageView from './components/ManageView'
@@ -43,7 +43,7 @@ const NAV: [View, string, typeof PhotoLibraryIcon][] = [
 ]
 
 export default function App(): JSX.Element {
-  const { view, setView, load, onProgress, refreshLibrary, toast, dismissToast, menuOpen, setMenuOpen } = useStore()
+  const { view, setView, load, onProgress, refreshLibrary, toast, dismissToast, setMenuOpen } = useStore()
 
   useEffect(() => {
     void load()
@@ -90,14 +90,6 @@ export default function App(): JSX.Element {
 
   useBack(view === 'review', () => setView('library'))
 
-  // Swipe right from the left edge of the library opens ☰.
-  const bodyRef = useRef<HTMLElement>(null)
-  const edge = useRef(false)
-  useSwipe(bodyRef, {
-    enabled: view === 'library' && !menuOpen,
-    onRight: () => edge.current && setMenuOpen(true)
-  })
-
   return (
     <div className="app">
       <header className="topbar">
@@ -117,11 +109,7 @@ export default function App(): JSX.Element {
           <SettingsIcon />
         </button>
       </header>
-      <main
-        className="body"
-        ref={bodyRef}
-        onTouchStart={(e) => (edge.current = e.touches[0].clientX < 24)}
-      >
+      <main className="body">
         {(view === 'library' || view === 'review') && <Library />}
         {view === 'manage' && <CharactersView />}
         {view === 'settings' && <SettingsView />}

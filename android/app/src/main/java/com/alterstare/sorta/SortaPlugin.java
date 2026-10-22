@@ -385,7 +385,7 @@ public class SortaPlugin extends Plugin {
     public void setTheme(PluginCall call) {
         boolean dark = Boolean.TRUE.equals(call.getBoolean("dark", false));
         getContext().getSharedPreferences("sorta", android.content.Context.MODE_PRIVATE).edit().putBoolean("dark", dark).apply();
-        getActivity().runOnUiThread(() -> getBridge().getWebView().setBackgroundColor(dark ? 0xFF0B0D13 : 0xFFF4F5F8));
+        getActivity().runOnUiThread(() -> MainActivity.applyTheme(getActivity(), getBridge().getWebView(), dark));
         call.resolve();
     }
 

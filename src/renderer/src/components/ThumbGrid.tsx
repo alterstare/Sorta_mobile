@@ -172,8 +172,8 @@ export default function ThumbGrid({ items }: { items: ImageItem[] }): JSX.Elemen
           <Thumb img={img} settings={settings} size={cellW} />
           {selecting && <span className={`cell-check ${on ? 'on' : ''}`}>{on && <CheckIcon />}</span>}
           <div className="cell-foot" onClick={(e) => e.stopPropagation()}>
-            <Stars imgs={targets(img)} size={cols >= 3 ? 11 : 14} />
-            <FavGroup imgs={targets(img)} noGroup={cols >= 3} />
+            <Stars imgs={targets(img)} own={img} size={cols >= 3 ? 12 : 14} />
+            <FavGroup imgs={targets(img)} own={img} noGroup={cols >= 3} />
           </div>
           <div className="cell-label">{charLabel(img)}</div>
         </div>

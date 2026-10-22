@@ -13,8 +13,8 @@ import { setStars, toggleFavorite, toggleGroup } from '../collect'
 const NO_GROUPS: { id: number; name: string }[] = []
 
 // 5 stars: click N → N stars; click the current value → none.
-export function Stars({ imgs, size = 14 }: { imgs: ImageItem[]; size?: number }): JSX.Element {
-  const value = imgs[0]?.stars ?? 0
+export function Stars({ imgs, size = 14, own }: { imgs: ImageItem[]; size?: number; own?: ImageItem }): JSX.Element {
+  const value = (own ?? imgs[0])?.stars ?? 0
   const [hover, setHover] = useState(0)
   return (
     <span className="stars" style={{ fontSize: size }} onMouseLeave={() => setHover(0)}>
@@ -37,8 +37,8 @@ export function Stars({ imgs, size = 14 }: { imgs: ImageItem[]; size?: number })
 }
 
 // ♥ | ＋ in one framed pill; `noGroup` drops the ＋ (small icons: right-click only).
-export function FavGroup({ imgs, noGroup = false }: { imgs: ImageItem[]; noGroup?: boolean }): JSX.Element {
-  const fav = imgs.length > 0 && imgs.every((i) => i.favorite)
+export function FavGroup({ imgs, noGroup = false, own }: { imgs: ImageItem[]; noGroup?: boolean; own?: ImageItem }): JSX.Element {
+  const fav = own ? own.favorite : imgs.length > 0 && imgs.every((i) => i.favorite)
   return (
     <span className="seg" onClick={(e) => e.stopPropagation()}>
       <span className={`seg-btn heart ${fav ? 'on' : ''}`} title={fav ? '즐겨찾기 해제' : '즐겨찾기'} onClick={() => void toggleFavorite(imgs)}>
