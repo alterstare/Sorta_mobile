@@ -8,6 +8,7 @@ import { useBack } from '../touch'
 import type { NasConnInfo } from '../../../shared/ipc'
 import { CheckIcon, FolderIcon, FolderOpenIcon, KeyboardArrowLeftIcon, LanIcon, RefreshIcon } from './icons'
 import { Sheet } from './Library'
+import Stepper from './Stepper'
 import { nasParts, nasPath } from '../../../backend/native'
 
 // "/nas/<id>/photo/sorted" → "photo/sorted" (the connection named once above)
@@ -237,18 +238,15 @@ export default function SettingsView(): JSX.Element {
           <div className="row-text">
             <div className="row-title">NAS 그림 캐시</div>
             <div className="row-desc">
-              한 번 본 그림과 미리 보기를 휴대폰에 두어 다시 볼 때 빨리 엽니다.
+              한 번 본 그림과 미리 보기를 휴대폰에 두어 다시 볼 때 빨리 엽니다. 최대 용량을 정합니다(0이면 캐시 미사용).
               {cache && ` 지금 ${fmtBytes(cache.bytes)} (${cache.files.toLocaleString()}개).`}
             </div>
           </div>
           <div className="row-stack">
-            <div className="flat-group">
-              {[256, 1024, 4096].map((mb) => (
-                <button key={mb} className={`mini ${settings.cacheMB === mb ? 'on' : ''}`} onClick={() => void saveSettings({ cacheMB: mb })}>
-                  {mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`}
-                </button>
-              ))}
-            </div>
+            <span className="cache-size">
+              <Stepper value={Math.round((settings.cacheMB / 1024) * 10) / 10} min={0} max={64} step={0.5} onChange={(gb) => void saveSettings({ cacheMB: Math.round(gb * 1024) })} />
+              GB
+            </span>
             <div className="flat-group">
               <button
                 className="mini danger"

@@ -3,7 +3,7 @@ import type { JSX } from 'react'
 import { useStore } from './store'
 import type { View } from './store'
 import { popBack, useBack } from './touch'
-import { CloseIcon, MenuIcon, PersonIcon, PhotoLibraryIcon, SettingsIcon, UploadIcon } from './components/icons'
+import { CloseIcon, FactCheckIcon, MenuIcon, PersonIcon, PhotoLibraryIcon, SettingsIcon, UploadIcon } from './components/icons'
 import Library from './components/Library'
 import ManageView from './components/ManageView'
 import OrgView from './components/OrgView'
@@ -89,6 +89,11 @@ export default function App(): JSX.Element {
   }, [theme])
 
   useBack(view === 'review', () => setView('library'))
+  // 검토: character review first; only rating checks left → 등급 확인
+  const counts = useStore((s) => s.tree?.counts)
+  const openReview = useStore((s) => s.openReview)
+  const reviewCount = (counts?.pending ?? 0) + (counts?.ratingReview ?? 0)
+  const reviewKind = !counts?.pending && counts?.ratingReview ? 'rating' : 'character'
 
   return (
     <div className="app">
@@ -101,6 +106,10 @@ export default function App(): JSX.Element {
             <Icon />
           </button>
         ))}
+        <button className={`icon-btn ${view === 'review' ? 'on' : ''}`} title="검토" onClick={() => openReview(reviewKind)}>
+          <FactCheckIcon />
+          {reviewCount > 0 && <span className="icon-badge">{reviewCount > 99 ? '99+' : reviewCount}</span>}
+        </button>
         <div className="spacer" />
         <button className={`icon-btn ${view === 'upload' ? 'on' : ''}`} title="올리기" onClick={() => setView('upload')}>
           <UploadIcon />

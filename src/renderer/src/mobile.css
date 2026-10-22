@@ -1251,3 +1251,44 @@ body:has(.m-viewer) .toast {
 .mini.primary-text:not(.on) {
   color: var(--accent);
 }
+
+/* 검토 count on its top-bar icon */
+.topbar .icon-btn {
+  position: relative;
+}
+.icon-badge {
+  position: absolute;
+  top: 3px;
+  right: 1px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+/* number stepper: thumb-sized on a phone */
+.cache-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.stepper-val {
+  width: 72px;
+  height: 38px;
+  font-size: 15px;
+}
+.stepper-btn {
+  width: 34px;
+  height: 19px;
+}
+.stepper-btn .micon {
+  width: 20px;
+  height: 20px;
+}
