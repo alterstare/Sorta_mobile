@@ -283,6 +283,27 @@ const api: Api = {
     need().record('소속 지정', before, after)
   },
   pendingEdits: () => edits?.waiting ?? 0,
+  trash: async (ids) => {
+    const e = need()
+    const at = Date.now()
+    for (const i of imgs(ids)) e.apply({ op: 'trash', at, sha: i.sha })
+  },
+  saveToPhone: async (ids) => {
+    const list = imgs(ids).filter((i) => i.path)
+    if (!list.length) return { ok: false, message: '원본 폴더가 휴대폰에 연결되지 않아 저장할 수 없습니다' }
+    let ok = 0
+    let last = ''
+    for (const i of list) {
+      try {
+        last = (await native.saveToGallery({ path: i.path })).name
+        ok++
+      } catch {
+        // NAS unreachable — counted below
+      }
+    }
+    if (!ok) return { ok: false, message: '저장하지 못했습니다 (NAS 연결을 확인하세요)' }
+    return { ok: true, message: list.length === 1 ? `사진 › Sorta에 저장: ${last}` : `사진 › Sorta에 ${ok}장 저장${ok < list.length ? ` · ${list.length - ok}장 실패` : ''}` }
+  },
 
   nasList: async () => (await native.nasList()).conns,
   nasTest: async (conn, password) => (await native.nasTest({ conn, password })).count,

@@ -82,6 +82,12 @@ export class Edits {
     this.onChange()
   }
 
+  // A change that isn't undone on the phone (삭제: the PC takes it from here).
+  apply(e: MobileEdit): void {
+    this.push(e)
+    this.onChange()
+  }
+
   private push(e: MobileEdit): void {
     this.model.apply(e)
     this.journal.push({ e, file: null })

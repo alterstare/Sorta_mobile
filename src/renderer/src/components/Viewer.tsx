@@ -73,6 +73,7 @@ export default function Viewer({ items }: { items: ImageItem[] }): JSX.Element |
       </div>
       <div className="viewer-rate">
         <Stars imgs={[img]} size={20} />
+        <span className="spacer" />
         <FavGroup imgs={[img]} />
       </div>
       <div
@@ -130,7 +131,7 @@ export default function Viewer({ items }: { items: ImageItem[] }): JSX.Element |
           ))}
           {sorted.length === 0 && <span className="edit-none">캐릭터 미지정</span>}
           {hasAuto && (
-            <button className="mini" title="자동 분류 결과가 맞다고 확정" onClick={() => void window.api.confirmCharacters([img.id], ids)}>
+            <button className="mini edit-confirm" title="자동 분류 결과가 맞다고 확정" onClick={() => void window.api.confirmCharacters([img.id], ids)}>
               <CheckIcon />
               확인
             </button>

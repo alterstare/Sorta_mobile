@@ -36,6 +36,8 @@ interface State {
   setSelecting: (v: boolean) => void
   kept: Record<string, unknown>
   groupDialog: number[] | null
+  trashDialog: number[] | null
+  setTrashDialog: (ids: number[] | null) => void
   groupShotDialog: { ids: number[]; suggest: string | null; after?: () => void } | null
   setGroupShotDialog: (d: { ids: number[]; suggest: string | null; after?: () => void } | null) => void
   setGroupDialog: (ids: number[] | null) => void
@@ -94,6 +96,8 @@ export const useStore = create<State>((set, get) => ({
   setSelecting: (selecting) => set(selecting ? { selecting } : { selecting, selected: new Set() }),
   kept: {},
   groupDialog: null,
+  trashDialog: null,
+  setTrashDialog: (trashDialog) => set({ trashDialog }),
   groupShotDialog: null,
   setGroupShotDialog: (groupShotDialog) => set({ groupShotDialog }),
   setGroupDialog: (groupDialog) => set({ groupDialog }),

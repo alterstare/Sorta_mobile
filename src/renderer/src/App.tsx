@@ -1,9 +1,8 @@
 import { useEffect } from 'react'
 import type { JSX } from 'react'
 import { useStore } from './store'
-import type { View } from './store'
 import { popBack, useBack } from './touch'
-import { CloseIcon, FactCheckIcon, MenuIcon, PersonIcon, PhotoLibraryIcon, SettingsIcon, UploadIcon } from './components/icons'
+import { FactCheckIcon, MenuIcon, PersonIcon, PhotoLibraryIcon, SettingsIcon, UploadIcon } from './components/icons'
 import Library from './components/Library'
 import ManageView from './components/ManageView'
 import OrgView from './components/OrgView'
@@ -12,7 +11,7 @@ import SettingsView from './components/SettingsView'
 import UploadView from './components/UploadView'
 import MenuDrawer from './components/MenuDrawer'
 import ActivityBar from './components/ActivityBar'
-import { GroupShotDialog, NewGroupDialog } from './components/ImageMenu'
+import { GroupShotDialog, NewGroupDialog, TrashDialog } from './components/ImageMenu'
 import { native } from '../../backend/native'
 
 // 관리: 캐릭터 / 소속 tabs (under the page title).
@@ -36,12 +35,7 @@ function CharactersView(): JSX.Element {
   return tab === 'manage' ? <ManageView tabs={tabs} /> : <OrgView tabs={tabs} />
 }
 
-// Top bar: ☰ · 라이브러리 · 관리 … 올리기 · 설정 (icons only).
-const NAV: [View, string, typeof PhotoLibraryIcon][] = [
-  ['library', '라이브러리', PhotoLibraryIcon],
-  ['manage', '관리', PersonIcon]
-]
-
+// Top bar: ☰ · 라이브러리 · 검토 · 관리 … 올리기 · 설정 (icons only).
 export default function App(): JSX.Element {
   const { view, setView, load, onProgress, refreshLibrary, toast, dismissToast, setMenuOpen } = useStore()
 
@@ -101,14 +95,15 @@ export default function App(): JSX.Element {
         <button className="icon-btn" title="메뉴" onClick={() => setMenuOpen(true)}>
           <MenuIcon />
         </button>
-        {NAV.map(([v, label, Icon]) => (
-          <button key={v} className={`icon-btn ${view === v ? 'on' : ''}`} title={label} onClick={() => setView(v)}>
-            <Icon />
-          </button>
-        ))}
+        <button className={`icon-btn ${view === 'library' ? 'on' : ''}`} title="라이브러리" onClick={() => setView('library')}>
+          <PhotoLibraryIcon />
+        </button>
         <button className={`icon-btn ${view === 'review' ? 'on' : ''}`} title="검토" onClick={() => openReview(reviewKind)}>
           <FactCheckIcon />
           {reviewCount > 0 && <span className="icon-badge">{reviewCount > 99 ? '99+' : reviewCount}</span>}
+        </button>
+        <button className={`icon-btn ${view === 'manage' ? 'on' : ''}`} title="관리" onClick={() => setView('manage')}>
+          <PersonIcon />
         </button>
         <div className="spacer" />
         <button className={`icon-btn ${view === 'upload' ? 'on' : ''}`} title="올리기" onClick={() => setView('upload')}>
@@ -129,12 +124,10 @@ export default function App(): JSX.Element {
       <ActivityBar />
       <NewGroupDialog />
       <GroupShotDialog />
+      <TrashDialog />
       {toast && (
         <div className={`toast ${toast.ok ? '' : 'err'}`} onClick={dismissToast}>
           <span>{toast.message}</span>
-          <button className="toast-x" title="닫기" onClick={dismissToast}>
-            <CloseIcon />
-          </button>
         </div>
       )}
     </div>

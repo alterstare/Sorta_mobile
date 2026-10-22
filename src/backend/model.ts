@@ -96,7 +96,11 @@ export class Model {
   affs = new Map<number, MAff>()
   chars = new Map<number, MChar>()
   groups = new Map<number, MGroup>()
-  images: MImage[] = []
+  images: MImage[] = [] // by id - 1 (ids stay put)
+  gone = new Set<number>() // deleted on the phone (the PC sends them to the recycle bin)
+  live(): MImage[] {
+    return this.gone.size ? this.images.filter((i) => !this.gone.has(i.id)) : this.images
+  }
   bySha = new Map<string, MImage>()
   createdAt = 0
   roots: string[] = []
@@ -332,12 +336,17 @@ export class Model {
         if (c && e.to.trim()) c.name = e.to.trim()
         return
       }
+      case 'trash': {
+        const img = this.bySha.get(e.sha)
+        if (img) this.gone.add(img.id)
+        return
+      }
       case 'group': {
         const g = this.groupByName(e.name, false)
         if (e.action === 'create') this.groupByName(e.name, true)
         else if (g && e.action === 'delete') {
           this.groups.delete(g.id)
-          for (const i of this.images) i.groups = i.groups.filter((x) => x !== g.id)
+          for (const i of this.live()) i.groups = i.groups.filter((x) => x !== g.id)
         } else if (g && e.to) g.name = e.to
         return
       }
@@ -400,7 +409,7 @@ export class Model {
         s.add(id)
       }
       const counts: TreeCounts = { all: 0, favorite: 0, pending: 0, ratingReview: 0, unknown: 0, other: 0, groupShot: 0, unclassified: 0, setAside: 0 }
-      for (const i of this.images) {
+      for (const i of this.live()) {
         if (!pass(i)) continue
         if (i.aside) {
           counts.setAside++
@@ -609,14 +618,14 @@ export class Model {
       if (!this.visible(i, f.ratings, f.groups ?? [])) return false
       return !q || matchQ(i)
     }
-    return sortItems(this.images.filter(pass).map((i) => this.item(i)), f)
+    return sortItems(this.live().filter(pass).map((i) => this.item(i)), f)
   }
 
   // ---- review ----
 
   reviewQueue(kind: ReviewKind, lowConfidence = 0.5): ReviewItem[] {
     const out: ReviewItem[] = []
-    for (const i of this.images) {
+    for (const i of this.live()) {
       if (i.aside) continue
       if (kind === 'character' ? !i.rows.some((r) => r.st === 'pending') : !i.rr) continue
       const confirmed = i.rows
@@ -661,7 +670,7 @@ export class Model {
   // Up to n 미리 보기 of pictures already under the character (confirmed first).
   private references(cid: number, except: number, n = 4): string[] {
     const hits: { t: string; conf: boolean; id: number }[] = []
-    for (const i of this.images) {
+    for (const i of this.live()) {
       if (i.id === except) continue
       const r = i.rows.find((x) => x.c === cid && SORTED(x))
       if (r) hits.push({ t: `${i.thumb}\n${i.path}`, conf: r.st === 'confirmed', id: i.id })
@@ -677,7 +686,7 @@ export class Model {
     if (!t) return []
     const words = t.split(/\s+/)
     const n = new Map<number, number>()
-    for (const i of this.images) for (const r of i.rows) if (SORTED(r) && r.c !== null) n.set(r.c, (n.get(r.c) ?? 0) + 1)
+    for (const i of this.live()) for (const r of i.rows) if (SORTED(r) && r.c !== null) n.set(r.c, (n.get(r.c) ?? 0) + 1)
     const hits: (CharacterHit & { prefix: boolean })[] = []
     for (const c of this.chars.values()) {
       const s = this.series.get(c.sid)?.name ?? ''
@@ -699,7 +708,7 @@ export class Model {
 
   characters(): ManagedCharacter[] {
     const n = new Map<number, number>()
-    for (const i of this.images) for (const r of i.rows) if (SORTED(r) && r.c !== null) n.set(r.c, (n.get(r.c) ?? 0) + 1)
+    for (const i of this.live()) for (const r of i.rows) if (SORTED(r) && r.c !== null) n.set(r.c, (n.get(r.c) ?? 0) + 1)
     return [...this.chars.values()]
       .map((c) => ({
         id: c.id,
@@ -720,7 +729,7 @@ export class Model {
     const s = this.seriesByName(series, false)
     if (!s) return { series, wiki: null, nodes: [], characters: [] }
     const n = new Map<number, number>()
-    for (const i of this.images) for (const r of i.rows) if (SORTED(r) && r.c !== null) n.set(this.root(r.c), (n.get(this.root(r.c)) ?? 0) + 1)
+    for (const i of this.live()) for (const r of i.rows) if (SORTED(r) && r.c !== null) n.set(this.root(r.c), (n.get(this.root(r.c)) ?? 0) + 1)
     return {
       series: s.name,
       wiki: s.wiki,

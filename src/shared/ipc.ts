@@ -93,6 +93,9 @@ export interface Api {
   renameAffiliation: (id: number, name: string) => Promise<void>
   placeCharacters: (ids: number[], affiliationId: number | null) => Promise<void>
   pendingEdits: () => number // changes the PC hasn't taken yet
+  // 삭제: hidden here at once; the PC sends the originals to its recycle bin
+  trash: (ids: number[]) => Promise<void>
+  saveToPhone: (ids: number[]) => Promise<JobSummary> // the originals → Pictures/Sorta
 
   // NAS (WebDAV)
   nasList: () => Promise<NasConnInfo[]>

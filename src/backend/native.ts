@@ -43,6 +43,7 @@ interface SortaPlugin {
   listImages(o: { dir: string }): Promise<{ files: LocalImage[] }>
   upload(o: { from: string; to: string }): Promise<{ size: number }>
   deleteLocal(o: { paths: string[] }): Promise<{ deleted: string[] }>
+  saveToGallery(o: { path: string }): Promise<{ name: string }>
   pickFolder(): Promise<{ path: string | null }>
   storageStatus(): Promise<{ granted: boolean }>
   requestStorage(): Promise<{ granted: boolean }>

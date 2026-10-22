@@ -298,6 +298,58 @@ public class SortaPlugin extends Plugin {
         });
     }
 
+    // A picture (NAS or phone) → the phone's gallery (Pictures/Sorta). A
+    // name clash is renamed by the system ("x (1).jpg").
+    @PluginMethod
+    public void saveToGallery(PluginCall call) {
+        bg(call, () -> {
+            String path = need(call, "path");
+            byte[] b = Vfs.isRemote(path) ? ImgCache.nas(path) : java.nio.file.Files.readAllBytes(new File(path).toPath());
+            String name = path.substring(path.lastIndexOf('/') + 1);
+            int dot = name.lastIndexOf('.');
+            String ext = dot >= 0 ? name.substring(dot + 1).toLowerCase(Locale.ROOT) : "jpg";
+            String mime = SortaWebViewClient.mimeOf(name);
+            if ("image/*".equals(mime)) mime = "image/" + ext;
+            String saved;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                android.content.ContentResolver cr = getContext().getContentResolver();
+                android.content.ContentValues v = new android.content.ContentValues();
+                v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
+                v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime);
+                v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Sorta");
+                v.put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1);
+                Uri uri = cr.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                if (uri == null) throw new IOException("저장하지 못했습니다");
+                try (java.io.OutputStream out = cr.openOutputStream(uri)) {
+                    if (out == null) throw new IOException("저장하지 못했습니다");
+                    out.write(b);
+                }
+                android.content.ContentValues done = new android.content.ContentValues();
+                done.put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0);
+                cr.update(uri, done, null, null);
+                saved = name;
+                try (android.database.Cursor c = cr.query(uri, new String[] {android.provider.MediaStore.MediaColumns.DISPLAY_NAME}, null, null, null)) {
+                    if (c != null && c.moveToFirst()) saved = c.getString(0);
+                }
+            } else {
+                File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Sorta");
+                //noinspection ResultOfMethodCallIgnored
+                dir.mkdirs();
+                String stem = dot >= 0 ? name.substring(0, dot) : name;
+                File f = new File(dir, name);
+                for (int i = 1; f.exists(); i++) f = new File(dir, stem + " (" + i + ")." + ext);
+                try (java.io.OutputStream out = new java.io.FileOutputStream(f)) {
+                    out.write(b);
+                }
+                MediaScannerConnection.scanFile(getContext(), new String[] {f.getPath()}, null, null);
+                saved = f.getName();
+            }
+            JSObject o = new JSObject();
+            o.put("name", saved);
+            call.resolve(o);
+        });
+    }
+
     // ---- folder picker / storage ----
 
     @PluginMethod

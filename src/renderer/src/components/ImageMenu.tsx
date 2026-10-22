@@ -8,7 +8,7 @@ import { useBack } from '../touch'
 import type { ImageItem } from '../../../shared/types'
 import ContextMenu from './ContextMenu'
 import type { MenuItem } from './ContextMenu'
-import { AddIcon, CheckIcon, ContentCopyIcon, GroupsIcon, FavoriteIcon, StarIcon } from './icons'
+import { AddIcon, CheckIcon, ContentCopyIcon, DeleteIcon, DownloadIcon, GroupsIcon, FavoriteIcon, StarIcon } from './icons'
 import { characterNames, characterTags, copyNames, copyText, createGroup, setStars, toggleFavorite, toggleGroup } from '../collect'
 
 export function useImageMenu(items: ImageItem[]): {
@@ -42,6 +42,12 @@ export function useImageMenu(items: ImageItem[]): {
       onClick: () => void copyText(tags, '태그 복사')
     },
     {
+      label: imgs.length === 1 ? '휴대폰에 저장' : `${imgs.length}장 휴대폰에 저장`,
+      icon: <DownloadIcon />,
+      separator: true,
+      onClick: () => void window.api.saveToPhone(imgs.map((i) => i.id)).then((r) => useStore.getState().showToast(r))
+    },
+    {
       label: fav ? '즐겨찾기 해제' : '즐겨찾기에 추가',
       icon: <FavoriteIcon filled={fav} />,
       separator: true,
@@ -68,6 +74,12 @@ export function useImageMenu(items: ImageItem[]): {
         onClick: () => void setStars(imgs, n)
       }))
     },
+    {
+      label: imgs.length === 1 ? '삭제' : `${imgs.length}장 삭제`,
+      icon: <DeleteIcon />,
+      separator: true,
+      onClick: () => useStore.getState().setTrashDialog(imgs.map((i) => i.id))
+    }
   ]
   return { onContextMenu, menu: <ContextMenu x={at.x} y={at.y} items={items_} onClose={close} /> }
 }
@@ -128,6 +140,43 @@ export function GroupShotDialog(): JSX.Element | null {
           <button className="btn primary" onClick={() => void go()}>
             <GroupsIcon />
             단체 사진으로 분류
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 삭제 확인: hidden on the phone at once; the PC's Sorta sends the originals
+// to its recycle bin when it takes the change (restorable there).
+export function TrashDialog(): JSX.Element | null {
+  const ids = useStore((s) => s.trashDialog)
+  const setIds = useStore((s) => s.setTrashDialog)
+  useBack(!!ids, () => setIds(null))
+  if (!ids) return null
+  const close = (): void => setIds(null)
+  const go = async (): Promise<void> => {
+    close()
+    await window.api.trash(ids)
+    const st = useStore.getState()
+    st.setSelecting(false)
+    st.showToast({ ok: true, message: `${ids.length}장 삭제 · PC의 Sorta가 휴지통으로 보냅니다` })
+  }
+  return (
+    <div className="modal-back" onMouseDown={close}>
+      <div className="modal small" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h2>{ids.length}장 삭제</h2>
+        </div>
+        <div className="row-desc">
+          휴대폰 목록에서 바로 빠지고, PC의 Sorta가 이 변경을 받으면 원본을 PC 휴지통으로 보냅니다. 휴대폰에서는 되돌릴 수 없습니다.
+        </div>
+        <div className="modal-foot">
+          <button className="btn" onClick={close}>
+            취소
+          </button>
+          <button className="btn danger" onClick={() => void go()}>
+            삭제
           </button>
         </div>
       </div>

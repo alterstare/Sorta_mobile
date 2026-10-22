@@ -1292,3 +1292,54 @@ body:has(.m-viewer) .toast {
   width: 20px;
   height: 20px;
 }
+
+/* ---- layout pass 2 ---- */
+/* 크게 보기: stars left, ♥ · ＋ at the right end; 확인 at the right end */
+.m-viewer .viewer-rate .spacer {
+  flex: 1;
+}
+.viewer-edit .edit-chars .edit-confirm {
+  margin-left: auto;
+}
+/* 등급 · 단체 사진 / 캐릭터 아닌 그림 (크게 보기 + 검토): centred, more room */
+.viewer-edit .edit-row,
+.review-bottom .review-row {
+  justify-content: center;
+  align-self: center;
+}
+.viewer-edit .edit-row > * + *,
+.review-bottom .review-row > * + * {
+  margin-left: 22px;
+}
+.viewer-edit .edit-row > * + *::before,
+.review-bottom .review-row > * + *::before {
+  left: -11px;
+}
+/* messages: a small pill at the bottom, as wide as its text, see-through
+   theme colour */
+.toast,
+body:has(.m-review) .toast,
+body:has(.m-viewer) .toast {
+  top: auto;
+  left: 50%;
+  right: auto;
+  bottom: calc(52px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  font-size: 13px;
+  text-align: center;
+  animation: none;
+}
+.toast.err {
+  color: var(--danger);
+}
+body:has(.m-review) .toast {
+  bottom: calc(76px + env(safe-area-inset-bottom));
+}
