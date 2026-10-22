@@ -16,8 +16,26 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release signing: the same key as Halftone 모바일, kept OUTSIDE the repo
+    // (~/.halftone/keystore.properties + the keystore next to it). Updates
+    // only install over a build signed with the same key.
+    def ksDir = new File(System.getProperty("user.home"), ".halftone")
+    def ksProps = new File(ksDir, "keystore.properties")
+    signingConfigs {
+        if (ksProps.exists()) {
+            def p = new Properties()
+            ksProps.withInputStream { p.load(it) }
+            release {
+                storeFile new File(ksDir, p['storeFile'])
+                storePassword p['storePassword']
+                keyAlias p['keyAlias']
+                keyPassword p['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (ksProps.exists()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
