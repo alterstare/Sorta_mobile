@@ -18,9 +18,8 @@ import type {
 } from './types'
 
 export interface UpdateStatus {
-  state: 'idle' | 'checking' | 'none' | 'downloading' | 'downloaded' | 'error'
+  state: 'idle' | 'checking' | 'none' | 'available' | 'error' // available = newer release on GitHub
   version?: string
-  percent?: number
   error?: string
 }
 
@@ -129,7 +128,7 @@ export interface Api {
   updateStatus: () => UpdateStatus
   onUpdate: (cb: (s: UpdateStatus) => void) => () => void
   checkUpdate: () => Promise<UpdateStatus>
-  installUpdate: () => Promise<void>
+  installUpdate: () => Promise<void> // opens the release page in the browser
 
   cacheInfo: () => Promise<{ bytes: number; files: number }>
   clearCache: () => Promise<void>

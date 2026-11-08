@@ -277,18 +277,17 @@ export default function SettingsView(): JSX.Element {
               Sorta 모바일 {version}
               {update.state === 'checking' && ' · 확인 중…'}
               {update.state === 'none' && ' · 최신 버전입니다'}
-              {update.state === 'downloading' && ` · 새 버전 v${update.version} 받는 중 ${update.percent ?? 0}%`}
-              {update.state === 'downloaded' && ` · 새 버전 v${update.version} 준비 완료`}
+              {update.state === 'available' && ` · 새 버전 v${update.version}`}
               {update.state === 'error' && ` · 확인하지 못했습니다 (${update.error})`}
             </div>
           </div>
           <div className="flat-group">
-            {update.state === 'downloaded' ? (
+            {update.state === 'available' ? (
               <button className="mini primary-text" onClick={() => void window.api.installUpdate()}>
-                설치
+                업데이트
               </button>
             ) : (
-              <button className="mini" disabled={update.state === 'checking' || update.state === 'downloading'} onClick={() => void window.api.checkUpdate()}>
+              <button className="mini" disabled={update.state === 'checking'} onClick={() => void window.api.checkUpdate()}>
                 <RefreshIcon />
                 업데이트 확인
               </button>

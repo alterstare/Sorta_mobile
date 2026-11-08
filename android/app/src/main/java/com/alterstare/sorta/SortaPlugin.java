@@ -405,66 +405,21 @@ public class SortaPlugin extends Plugin {
         p.getActivity().runOnUiThread(() -> UploadService.applyPriority(p.getBridge().getWebView()));
     }
 
-    // ---- 자동 업데이트 ----
+    // ---- 업데이트 알림 ----
 
-    // A release APK → the app cache (progress as "updateProgress" events).
+    // The release page in the browser (the user installs the APK there; the
+    // app never downloads / installs APKs — Play Protect flags that).
     @PluginMethod
-    public void downloadUpdate(PluginCall call) {
-        bg(call, () -> {
-            String url = need(call, "url");
-            File out = new File(getContext().getCacheDir(), need(call, "name"));
-            File part = new File(out.getPath() + ".part");
-            okhttp3.OkHttpClient http = new okhttp3.OkHttpClient.Builder().followRedirects(true).build();
-            try (okhttp3.Response r = http.newCall(new okhttp3.Request.Builder().url(url).build()).execute()) {
-                if (!r.isSuccessful() || r.body() == null) throw new IOException("HTTP " + r.code());
-                long total = r.body().contentLength();
-                long done = 0;
-                long lastSent = 0;
-                try (java.io.InputStream in = r.body().byteStream(); java.io.OutputStream o = new java.io.FileOutputStream(part)) {
-                    byte[] buf = new byte[64 * 1024];
-                    int n;
-                    while ((n = in.read(buf)) != -1) {
-                        o.write(buf, 0, n);
-                        done += n;
-                        if (done - lastSent > 256 * 1024) {
-                            lastSent = done;
-                            JSObject ev = new JSObject();
-                            ev.put("done", done);
-                            ev.put("total", total);
-                            notifyListeners("updateProgress", ev);
-                        }
-                    }
-                }
-            }
-            if (out.exists() && !out.delete()) throw new IOException("cannot replace " + out);
-            if (!part.renameTo(out)) throw new IOException("rename failed");
-            JSObject o = new JSObject();
-            o.put("path", out.getAbsolutePath());
-            call.resolve(o);
-        });
-    }
-
-    // Hand the APK to the system installer. Without "install unknown apps"
-    // allowed, its settings page opens first.
-    @PluginMethod
-    public void installApk(PluginCall call) {
-        android.content.Context ctx = getContext();
-        File f = new File(need(call, "path"));
-        JSObject o = new JSObject();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !ctx.getPackageManager().canRequestPackageInstalls()) {
-            Intent s = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + ctx.getPackageName()));
-            s.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ctx.startActivity(s);
-            o.put("needPermission", true);
-            call.resolve(o);
+    public void openUrl(PluginCall call) {
+        String url = need(call, "url");
+        if (!url.startsWith("https://")) {
+            call.reject("https only");
             return;
         }
-        Uri uri = androidx.core.content.FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".fileprovider", f);
-        Intent i = new Intent(Intent.ACTION_VIEW);
-        i.setDataAndType(uri, "application/vnd.android.package-archive");
-        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-        ctx.startActivity(i);
-        call.resolve(o);
+        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i);
+        call.resolve();
     }
 
     // ---- folder picker / storage ----
