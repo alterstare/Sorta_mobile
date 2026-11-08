@@ -10,6 +10,8 @@ Repo: `alterstare/Sorta_mobile`. Commits: subject-only, **no Claude trailer**.
 - PC Sorta writes `<정리 폴더>/.sorta/library.sortapack` (gzip JSON, pack v2: games,
   소속, characters, every picture's 분류 결과; `roots` + `files[].r` = pictures still in
   a 원본 폴더, e.g. waiting for review) and `.sorta/thumbs/<sha256>.webp` (미리 보기).
+  Since PC Sorta 0.1.11 it also writes `.sorta/mobile.sortapack` (same pack without tagger
+  scores / 학습 데이터, ~0.1MB instead of ~44MB); the phone reads that first, else the full one.
   Types: `src/shared/pack.ts` (copy of the desktop shape).
 - The phone reads that file (`backend/api.ts` → `fetch(rawUrl)` + DecompressionStream)
   into `backend/model.ts` (tree / image list / review queue / 조직도 — ports of desktop

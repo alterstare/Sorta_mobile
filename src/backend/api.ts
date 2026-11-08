@@ -24,6 +24,9 @@ const setStatus = (s: LibStatus): void => {
   statusSubs.forEach((f) => f(s))
 }
 
+// 폰용 분류 정보 (PC Sorta 0.1.11+): the pack without tagger scores and 학습
+// 데이터 — a fraction of the size. An older PC writes only the full one.
+const mobileFile = (dir: string): string => joinPath(dir, '.sorta/mobile.sortapack')
 const libFile = (dir: string): string => joinPath(dir, '.sorta/library.sortapack')
 const mb = (n: number): string => `${(n / 1048576).toFixed(1)}MB`
 
@@ -33,7 +36,8 @@ type Report = (done: number, total: number, label?: string, unit?: 'bytes') => v
 async function readPack(dir: string, report: Report = () => {}): Promise<Pack> {
   let res: Response
   try {
-    res = await fetch(rawUrl(libFile(dir)))
+    res = await fetch(rawUrl(mobileFile(dir)))
+    if (res.status === 404) res = await fetch(rawUrl(libFile(dir)))
   } catch {
     throw new Error('NAS 연결이 끊겨 분류 정보 파일을 받지 못했습니다. 다시 불러오세요')
   }
