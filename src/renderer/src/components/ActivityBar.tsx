@@ -6,6 +6,7 @@ import { useStore } from '../store'
 import { useBack } from '../touch'
 import { ArrowDownIcon, ArrowUpIcon, CloseIcon } from './icons'
 
+const mb = (n: number): string => `${(n / 1048576).toFixed(1)}MB`
 const pct = (done: number, total: number): number => (total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0)
 
 export default function ActivityBar(): JSX.Element | null {
@@ -43,7 +44,9 @@ export default function ActivityBar(): JSX.Element | null {
         : j.state === 'done'
           ? '완료'
           : j.total > 0
-            ? `${j.done.toLocaleString()} / ${j.total.toLocaleString()} (${pct(j.done, j.total)}%)`
+            ? j.unit === 'bytes'
+              ? `${mb(j.done)} / ${mb(j.total)} (${pct(j.done, j.total)}%)`
+              : `${j.done.toLocaleString()} / ${j.total.toLocaleString()} (${pct(j.done, j.total)}%)`
             : '진행 중…'
   return (
     <div className="activity" ref={ref}>

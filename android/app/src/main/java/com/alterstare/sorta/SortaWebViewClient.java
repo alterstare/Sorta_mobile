@@ -25,7 +25,8 @@ import java.util.Map;
 //   https://localhost/_s/th/<b64url thumb>?o=<b64url original>
 //                                                a 미리 보기: the NAS thumb, else made from the original
 //   https://localhost/_s/lth/<b64url path>?m=…   a 미리 보기 of a phone file
-//   https://localhost/_s/raw/<b64url path>       a NAS file as it is now (no cache)
+//   https://localhost/_s/raw/<b64url path>       a NAS file as it is now (no cache);
+//                                                X-Size = its byte size (progress)
 // Everything else falls through to Capacitor's local server.
 final class SortaWebViewClient extends BridgeWebViewClient {
     private static final String PREFIX = "/_s/";
@@ -89,8 +90,15 @@ final class SortaWebViewClient extends BridgeWebViewClient {
                     }
                     return ok("image/webp", new ByteArrayInputStream(b), true);
                 }
-                case "raw":
-                    return ok("application/octet-stream", Vfs.open(target), false);
+                case "raw": {
+                    RemoteFs.Entry e = Vfs.stat(target);
+                    if (!e.exists) return error(404);
+                    WebResourceResponse r = ok("application/octet-stream", Vfs.open(target), false);
+                    Map<String, String> h = new HashMap<>(r.getResponseHeaders());
+                    h.put("X-Size", String.valueOf(e.size));
+                    r.setResponseHeaders(h);
+                    return r;
+                }
                 default:
                     return error(400);
             }

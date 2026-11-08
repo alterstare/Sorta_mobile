@@ -20,7 +20,7 @@ let jobSeq = 1
 const cancels = new Map<number, () => void>()
 export async function job<T>(
   label: string,
-  run: (report: (done: number, total: number, label?: string) => void, signal: AbortSignal) => Promise<T>
+  run: (report: (done: number, total: number, label?: string, unit?: 'bytes') => void, signal: AbortSignal) => Promise<T>
 ): Promise<T> {
   const jobId = jobSeq++
   const ac = new AbortController()
@@ -28,9 +28,9 @@ export async function job<T>(
   let cur = label
   emitProgress({ jobId, label, done: 0, total: 0, state: 'running' })
   try {
-    const v = await run((done, total, l) => {
+    const v = await run((done, total, l, unit) => {
       if (l) cur = l
-      emitProgress({ jobId, label: cur, done, total, state: 'running' })
+      emitProgress({ jobId, label: cur, done, total, unit, state: 'running' })
     }, ac.signal)
     emitProgress({ jobId, label: cur, done: 1, total: 1, state: ac.signal.aborted ? 'cancelled' : 'done' })
     return v

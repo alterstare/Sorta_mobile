@@ -25,13 +25,41 @@ const setStatus = (s: LibStatus): void => {
 }
 
 const libFile = (dir: string): string => joinPath(dir, '.sorta/library.sortapack')
+const mb = (n: number): string => `${(n / 1048576).toFixed(1)}MB`
 
 // gzip JSON straight from the NAS (served by the native side, no cache).
-async function readPack(dir: string): Promise<Pack> {
-  const res = await fetch(rawUrl(libFile(dir)))
+// Bytes received are reported against X-Size (the file's size on the NAS).
+type Report = (done: number, total: number, label?: string, unit?: 'bytes') => void
+async function readPack(dir: string, report: Report = () => {}): Promise<Pack> {
+  let res: Response
+  try {
+    res = await fetch(rawUrl(libFile(dir)))
+  } catch {
+    throw new Error('NAS 연결이 끊겨 분류 정보 파일을 받지 못했습니다. 다시 불러오세요')
+  }
   if (res.status === 404) throw new Error('정리 폴더에 분류 정보 파일이 없습니다. PC의 Sorta 설정에서 "분류 정보 파일"을 켜고 정리 폴더를 확인하세요')
   if (!res.ok || !res.body) throw new Error(`분류 정보 파일을 읽지 못했습니다 (HTTP ${res.status})`)
-  const text = await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).text()
+  const total = Number(res.headers.get('X-Size')) || 0
+  let got = 0
+  let shown = 0
+  report(0, total, '분류 정보 받는 중', 'bytes')
+  const count = new TransformStream<Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>>({
+    transform(chunk, ctl) {
+      got += chunk.byteLength
+      if (got - shown >= 262144 || got === total) {
+        shown = got
+        report(got, total, '분류 정보 받는 중', 'bytes')
+      }
+      ctl.enqueue(chunk)
+      if (got === total) report(0, 0, '분류 정보 읽는 중') // the rest: unzip + parse
+    }
+  })
+  let text: string
+  try {
+    text = await new Response(res.body.pipeThrough(count).pipeThrough(new DecompressionStream('gzip'))).text()
+  } catch {
+    throw new Error(`NAS 연결이 끊겨 분류 정보 파일을 다 받지 못했습니다 (${mb(got)}${total ? ` / ${mb(total)}` : ''}). 다시 불러오세요`)
+  }
   const p = JSON.parse(text) as Pack
   if (p.format !== PACK_FORMAT) throw new Error('Sorta 분류 정보 파일이 아닙니다')
   if (p.version > PACK_VERSION) throw new Error('더 새 버전의 Sorta에서 만든 파일입니다. Sorta 모바일을 업데이트하세요')
@@ -50,7 +78,7 @@ async function reload(): Promise<void> {
     if (status.state !== 'ready') setStatus({ state: 'loading' })
     try {
       await edits?.flush() // what's waiting goes out before the file is read again
-      const p = await job('분류 정보 불러오기', async () => readPack(s.organizeDir))
+      const p = await job('분류 정보 불러오기', async (report) => readPack(s.organizeDir, report))
       const m = Model.fromPack(p, s.organizeDir, s.roots)
       const e = new Edits(m, Edits.dirOf(s.organizeDir), s.deviceId)
       e.onChange = emitChanged
