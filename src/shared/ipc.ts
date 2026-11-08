@@ -38,11 +38,17 @@ export type LibStatus =
 export interface NasConnInfo {
   id: string
   name: string
-  type: 'webdav'
-  url: string
+  type: 'webdav' | 'smb' | 'both' // what's entered (both = SMB when reachable)
+  url: string // WebDAV
   user: string
-  insecure: boolean
+  insecure: boolean // https with a self-signed certificate
   hasPassword?: boolean
+  host: string // SMB
+  port: number // 0 = 445
+  share: string // "tunnel, photo"
+  smbUser: string
+  domain: string
+  hasSmbPassword?: boolean
 }
 
 export interface UploadItem {
@@ -104,10 +110,11 @@ export interface Api {
   trash: (ids: number[]) => Promise<void>
   saveToPhone: (ids: number[]) => Promise<JobSummary> // the originals → Pictures/Sorta
 
-  // NAS (WebDAV)
+  // NAS (SMB / WebDAV)
   nasList: () => Promise<NasConnInfo[]>
-  nasTest: (conn: Partial<NasConnInfo>, password?: string) => Promise<number>
-  nasSave: (conn: Partial<NasConnInfo>, password?: string) => Promise<string>
+  nasTest: (conn: Partial<NasConnInfo>, via: 'smb' | 'webdav', pw: { password?: string; smbPassword?: string }) => Promise<number>
+  nasSave: (conn: Partial<NasConnInfo>, pw: { password?: string; smbPassword?: string }) => Promise<string>
+  nasVia: (id: string, recheck?: boolean) => Promise<'smb' | 'webdav'> // what the connection uses now
   nasRemove: (id: string) => Promise<void>
   listDirs: (path: string) => Promise<string[]> // sub-folder names
 

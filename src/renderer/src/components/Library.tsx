@@ -191,7 +191,7 @@ export default function Library(): JSX.Element {
           <div className="grid">
             <div className="empty">
               <SettingsIcon />
-              <p>설정에서 NAS(WebDAV)를 연결하고 Sorta의 정리 폴더를 고르면, PC에서 분류한 그림이 여기에 보입니다.</p>
+              <p>설정에서 NAS(SMB · WebDAV)를 연결하고 Sorta의 정리 폴더를 고르면, PC에서 분류한 그림이 여기에 보입니다.</p>
               <button className="btn primary" onClick={() => setView('settings')}>
                 설정 열기
               </button>

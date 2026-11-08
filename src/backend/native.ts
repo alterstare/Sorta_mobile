@@ -1,17 +1,25 @@
 // The Android side (SortaPlugin.java). Paths: local files are absolute paths;
-// "/nas/<connId>/<path>" is a file on that NAS connection (WebDAV).
+// "/nas/<connId>/<path>" is a file on that NAS connection (SMB / WebDAV).
 import { registerPlugin } from '@capacitor/core'
 import type { PluginListenerHandle } from '@capacitor/core'
 
 export interface NasConn {
   id: string
   name: string
-  type: 'webdav'
-  url: string
+  type: 'webdav' | 'smb' | 'both' // what's entered (both = SMB when reachable)
+  url: string // WebDAV
   user: string
   insecure: boolean // https with a self-signed certificate
   hasPassword?: boolean
+  host: string // SMB
+  port: number // 0 = 445
+  share: string // "tunnel, photo"
+  smbUser: string
+  domain: string
+  hasSmbPassword?: boolean
 }
+
+export type NasVia = 'smb' | 'webdav'
 
 export interface FsEntry {
   name: string
@@ -31,8 +39,9 @@ export interface LocalImage {
 
 interface SortaPlugin {
   nasList(): Promise<{ conns: NasConn[] }>
-  nasTest(o: { conn: Partial<NasConn>; password?: string }): Promise<{ count: number }>
-  nasSave(o: { conn: Partial<NasConn>; password?: string }): Promise<{ id: string }>
+  nasTest(o: { conn: Partial<NasConn>; via: NasVia; password?: string; smbPassword?: string }): Promise<{ count: number }>
+  nasSave(o: { conn: Partial<NasConn>; password?: string; smbPassword?: string }): Promise<{ id: string }>
+  nasVia(o: { id: string; recheck?: boolean }): Promise<{ via: NasVia }>
   nasRemove(o: { id: string }): Promise<void>
   fsReadText(o: { path: string }): Promise<{ data: string }>
   fsWriteText(o: { path: string; data: string }): Promise<void>

@@ -339,8 +339,9 @@ const api: Api = {
   },
 
   nasList: async () => (await native.nasList()).conns,
-  nasTest: async (conn, password) => (await native.nasTest({ conn, password })).count,
-  nasSave: async (conn, password) => (await native.nasSave({ conn, password })).id,
+  nasTest: async (conn, via, pw) => (await native.nasTest({ conn, via, ...pw })).count,
+  nasSave: async (conn, pw) => (await native.nasSave({ conn, ...pw })).id,
+  nasVia: async (id, recheck) => (await native.nasVia({ id, recheck })).via,
   nasRemove: async (id) => native.nasRemove({ id }),
   listDirs: async (path) =>
     (await native.fsReaddir({ path })).entries
@@ -394,7 +395,10 @@ export function installBackend(): void {
   // Leaving the app: what's waiting goes to the NAS; coming back: the PC may
   // have sorted since.
   void native.addListener('pause', () => void edits?.flush()).catch(() => {})
-  void native.addListener('resume', () => void reload()).catch(() => {})
+  void native.addListener('resume', () => {
+    const id = loadSettings().nasId
+    void (id ? native.nasVia({ id, recheck: true }).catch(() => null) : Promise.resolve()).then(() => reload())
+  }).catch(() => {})
   void reload()
   setTimeout(() => void checkForUpdate(), 4000)
 }

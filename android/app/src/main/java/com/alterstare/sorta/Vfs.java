@@ -48,13 +48,30 @@ final class Vfs {
         if (f != null) return f;
         NasStore.Conn c = NasStore.get(id);
         if (c == null) throw new IOException("NAS 연결을 찾을 수 없습니다 (" + id + ")");
-        f = create(c, NasStore.password(id));
+        f = create(c, NasStore.password(id), NasStore.smbPassword(id));
         open.put(id, f);
         return f;
     }
 
-    static RemoteFs create(NasStore.Conn c, String password) throws IOException {
+    static boolean hasDav(NasStore.Conn c) {
+        return c.url != null && !c.url.isEmpty();
+    }
+
+    static boolean hasSmb(NasStore.Conn c) {
+        return c.host != null && !c.host.isEmpty();
+    }
+
+    static RemoteFs create(NasStore.Conn c, String password, String smbPassword) throws IOException {
+        if (hasSmb(c) && hasDav(c)) return new DualFs(new SmbFs(c, smbPassword), new WebDavFs(c, password), c);
+        if (hasSmb(c)) return new SmbFs(c, smbPassword);
         return new WebDavFs(c, password);
+    }
+
+    // What the connection uses now: "smb" | "webdav" (recheck = look for SMB again).
+    static String via(String id, boolean recheck) throws IOException {
+        RemoteFs f = fs(id);
+        if (f instanceof DualFs) return ((DualFs) f).via(recheck);
+        return f instanceof SmbFs ? "smb" : "webdav";
     }
 
     // Connection edited / removed → drop its open client.

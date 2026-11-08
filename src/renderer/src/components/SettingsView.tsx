@@ -1,4 +1,4 @@
-// 설정 (phone): NAS (WebDAV) 연결, Sorta의 정리 폴더, PC 원본 폴더 ↔ NAS
+// 설정 (phone): NAS (SMB · WebDAV) 연결, Sorta의 정리 폴더, PC 원본 폴더 ↔ NAS
 // 폴더 연결, 올리기 폴더, 화면, 캐시. Saved as soon as changed.
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
@@ -35,6 +35,7 @@ export default function SettingsView(): JSX.Element {
   const [browse, setBrowse] = useState<{ title: string; start: string; onPick: (p: string) => void } | null>(null)
   const [version, setVersion] = useState('')
   const [cache, setCache] = useState<{ bytes: number; files: number } | null>(null)
+  const [via, setVia] = useState<'smb' | 'webdav' | null>(null)
   useBack(!!editing, () => setEditing(null))
 
   const loadConns = (): void => void window.api.nasList().then(setConns)
@@ -43,6 +44,10 @@ export default function SettingsView(): JSX.Element {
     void window.api.appVersion().then(setVersion).catch(() => {})
     void window.api.cacheInfo().then(setCache).catch(() => {})
   }, [])
+  useEffect(() => {
+    setVia(null)
+    if (settings?.nasId) void window.api.nasVia(settings.nasId).then(setVia).catch(() => {})
+  }, [settings?.nasId, conns])
   if (!settings) return <div className="page" />
   const conn = conns.find((c) => c.id === settings.nasId) ?? null
   const roots = status.state === 'ready' ? status.roots : []
@@ -63,11 +68,14 @@ export default function SettingsView(): JSX.Element {
           <div className="row-text">
             <div className="row-title">{conn ? conn.name : '연결된 NAS가 없습니다'}</div>
             <div className="row-desc">
-              {conn ? `${conn.url}${conn.user ? ` · ${conn.user}` : ''}` : 'WebDAV로 NAS에 연결합니다 (시놀로지 · QNAP 등에서 WebDAV 서버를 켜 두세요).'}
+              {conn
+                ? [conn.host && `SMB ${conn.host}`, conn.url && `WebDAV ${conn.url}`].filter(Boolean).join(' · ')
+                : 'SMB나 WebDAV로 NAS에 연결합니다. 둘 다 넣어 두면 SMB가 되는 곳(집 네트워크)에서는 SMB로, 아니면 WebDAV로 연결합니다.'}
             </div>
+            {conn && via && <div className="row-desc">지금 연결: {via === 'smb' ? 'SMB' : 'WebDAV'}</div>}
           </div>
           <div className="flat-group">
-            <button className="mini" onClick={() => setEditing(conn ?? { type: 'webdav', name: 'NAS', url: '', user: '', insecure: false })}>
+            <button className="mini" onClick={() => setEditing(conn ?? { name: 'NAS', url: '', user: '', insecure: false, host: '', port: 0, share: '', smbUser: '', domain: '' })}>
               <LanIcon />
               {conn ? '수정' : '연결'}
             </button>
@@ -347,61 +355,127 @@ function ConnSheet({
 }): JSX.Element {
   const [err, setErr] = useState<string | null>(null)
   const [c, setC] = useState<Partial<NasConnInfo>>(conn)
+  const [tab, setTab] = useState<'smb' | 'webdav'>(conn.url && !conn.host ? 'webdav' : 'smb')
   const [pw, setPw] = useState('')
+  const [smbPw, setSmbPw] = useState('')
   const [busy, setBusy] = useState(false)
   const [ok, setOk] = useState<string | null>(null)
-  const set = (patch: Partial<NasConnInfo>): void => (setC((x) => ({ ...x, ...patch })), setOk(null), setErr(null))
-  const password = pw || (c.id && conn.hasPassword ? undefined : '')
+  const clear = (): void => (setOk(null), setErr(null))
+  const set = (patch: Partial<NasConnInfo>): void => (setC((x) => ({ ...x, ...patch })), clear())
+  // Typed → that; else the stored one (undefined) for a saved connection.
+  const pwOf = (typed: string, has?: boolean): string | undefined => typed || (c.id && has ? undefined : '')
+  const filled = { smb: !!c.host?.trim(), webdav: !!c.url?.trim() }
   const test = async (): Promise<boolean> => {
     setBusy(true)
     setErr(null)
     try {
-      const n = await window.api.nasTest(c, password)
-      setOk(`연결 성공 · 폴더 ${n}개`)
+      const n = await window.api.nasTest(c, tab, { password: pwOf(pw, conn.hasPassword), smbPassword: pwOf(smbPw, conn.hasSmbPassword) })
+      setOk(`${tab === 'smb' ? 'SMB' : 'WebDAV'} 연결 성공 · 폴더 ${n}개`)
       return true
     } catch (e) {
       setOk(null)
-      setErr(`연결 실패: ${String((e as Error).message ?? e)}`)
+      setErr(`${tab === 'smb' ? 'SMB' : 'WebDAV'} 연결 실패: ${String((e as Error).message ?? e)}`)
       return false
     } finally {
       setBusy(false)
     }
   }
   return (
-    <Sheet title={conn.id ? 'NAS 연결 수정' : 'NAS 연결 (WebDAV)'} onClose={onClose}>
+    <Sheet title={conn.id ? 'NAS 연결 수정' : 'NAS 연결'} onClose={onClose}>
+      <div className="flat-group conn-tabs">
+        {(['smb', 'webdav'] as const).map((t) => (
+          <button key={t} className={`mini ${tab === t ? 'on' : ''}`} onClick={() => (setTab(t), clear())}>
+            {t === 'smb' ? 'SMB' : 'WebDAV'}
+            {filled[t] && tab !== t && <CheckIcon />}
+          </button>
+        ))}
+      </div>
+      <div className="row-desc">둘 다 넣어 두면 SMB가 되는 곳(집 네트워크)에서는 SMB로, 아니면 WebDAV로 연결합니다.</div>
       <label className="field">
         <span>이름</span>
         <input className="tag-input" value={c.name ?? ''} onChange={(e) => set({ name: e.target.value })} />
       </label>
-      <label className="field">
-        <span>주소</span>
-        <input
-          className="tag-input"
-          value={c.url ?? ''}
-          placeholder="https://192.168.0.10:5006"
-          inputMode="url"
-          autoCapitalize="off"
-          onChange={(e) => set({ url: e.target.value.trim() })}
-        />
-      </label>
-      <label className="field">
-        <span>아이디</span>
-        <input className="tag-input" value={c.user ?? ''} autoCapitalize="off" onChange={(e) => set({ user: e.target.value })} />
-      </label>
-      <label className="field">
-        <span>비밀번호</span>
-        <input
-          className="tag-input"
-          type="password"
-          value={pw}
-          placeholder={conn.hasPassword ? '바꿀 때만 입력' : ''}
-          onChange={(e) => (setPw(e.target.value), setOk(null), setErr(null))}
-        />
-      </label>
-      <button className={`sheet-opt ${c.insecure ? 'on' : ''}`} onClick={() => set({ insecure: !c.insecure })}>
-        <span className="menu-box">{c.insecure && <CheckIcon />}</span>
-        인증서 확인 건너뛰기 (자체 서명 https)
-      </button>
+      {tab === 'smb' ? (
+        <>
+          <label className="field">
+            <span>주소</span>
+            <input
+              className="tag-input"
+              value={c.host ?? ''}
+              placeholder="192.168.0.10"
+              inputMode="url"
+              autoCapitalize="off"
+              onChange={(e) => set({ host: e.target.value.trim() })}
+            />
+          </label>
+          <label className="field">
+            <span>포트</span>
+            <input
+              className="tag-input"
+              value={c.port ? String(c.port) : ''}
+              placeholder="445"
+              inputMode="numeric"
+              onChange={(e) => set({ port: Number(e.target.value.replace(/\D/g, '')) || 0 })}
+            />
+          </label>
+          <label className="field">
+            <span>공유 폴더</span>
+            <input
+              className="tag-input"
+              value={c.share ?? ''}
+              placeholder="여러 개면 쉼표로 (예: tunnel, photo)"
+              autoCapitalize="off"
+              onChange={(e) => set({ share: e.target.value })}
+            />
+          </label>
+          <label className="field">
+            <span>아이디</span>
+            <input className="tag-input" value={c.smbUser ?? ''} autoCapitalize="off" onChange={(e) => set({ smbUser: e.target.value })} />
+          </label>
+          <label className="field">
+            <span>비밀번호</span>
+            <input
+              className="tag-input"
+              type="password"
+              value={smbPw}
+              placeholder={conn.hasSmbPassword ? '바꿀 때만 입력' : ''}
+              onChange={(e) => (setSmbPw(e.target.value), clear())}
+            />
+          </label>
+        </>
+      ) : (
+        <>
+          <label className="field">
+            <span>주소</span>
+            <input
+              className="tag-input"
+              value={c.url ?? ''}
+              placeholder="https://192.168.0.10:5006"
+              inputMode="url"
+              autoCapitalize="off"
+              onChange={(e) => set({ url: e.target.value.trim() })}
+            />
+          </label>
+          <label className="field">
+            <span>아이디</span>
+            <input className="tag-input" value={c.user ?? ''} autoCapitalize="off" onChange={(e) => set({ user: e.target.value })} />
+          </label>
+          <label className="field">
+            <span>비밀번호</span>
+            <input
+              className="tag-input"
+              type="password"
+              value={pw}
+              placeholder={conn.hasPassword ? '바꿀 때만 입력' : ''}
+              onChange={(e) => (setPw(e.target.value), clear())}
+            />
+          </label>
+          <button className={`sheet-opt ${c.insecure ? 'on' : ''}`} onClick={() => set({ insecure: !c.insecure })}>
+            <span className="menu-box">{c.insecure && <CheckIcon />}</span>
+            인증서 확인 건너뛰기 (자체 서명 https)
+          </button>
+        </>
+      )}
       {ok && <div className="row-desc ok">{ok}</div>}
       {err && <div className="sheet-err">{err}</div>}
       <div className="sheet-foot flat-group">
@@ -411,15 +485,19 @@ function ConnSheet({
           </button>
         )}
         <span className="spacer" />
-        <button className="mini" disabled={busy || !c.url} onClick={() => void test()}>
+        <button className="mini" disabled={busy || !filled[tab]} onClick={() => void test()}>
           연결 확인
         </button>
         <button
           className="mini primary"
-          disabled={busy || !c.url}
+          disabled={busy || (!filled.smb && !filled.webdav)}
           onClick={async () => {
-            if (!(await test())) return
-            const id = await window.api.nasSave({ ...c, type: 'webdav', name: c.name?.trim() || 'NAS' }, pw || undefined)
+            // The tab on screen is checked (if filled); the other is saved as entered.
+            if (filled[tab] && !(await test())) return
+            const id = await window.api.nasSave(
+              { ...c, host: c.host?.trim() ?? '', url: c.url?.trim() ?? '', name: c.name?.trim() || 'NAS' },
+              { password: pw || undefined, smbPassword: smbPw || undefined }
+            )
             onSaved(id)
           }}
         >

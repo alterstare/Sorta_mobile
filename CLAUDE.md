@@ -2,7 +2,7 @@
 
 Android app (Capacitor + React + TS + zustand, same setup as Halftone 모바일 at
 `Desktop/code/MangaManagerMobile`) that shows what **Sorta (PC, `Desktop/code/sorta`)**
-sorted, from a NAS over **WebDAV**. No classification on the phone (no models).
+sorted, from a NAS over **SMB and/or WebDAV**. No classification on the phone (no models).
 Repo: `alterstare/Sorta_mobile`. Commits: subject-only, **no Claude trailer**.
 
 ## How it works
@@ -35,7 +35,13 @@ Repo: `alterstare/Sorta_mobile`. Commits: subject-only, **no Claude trailer**.
 `SortaPlugin` (JS name `Sorta`, wrapper `backend/native.ts`), `SortaWebViewClient`
 (`https://localhost/_s/{img|th|lth|raw}/<b64url>` — NAS pictures via `ImgCache` LRU,
 미리 보기 with fallback made from the original), WebDAV = `Vfs` / `WebDavFs` / `NasStore`
-(passwords in EncryptedSharedPreferences) copied from Halftone 모바일 (SMB dropped).
+(passwords in EncryptedSharedPreferences) copied from Halftone 모바일. SMB = `SmbFs` (smbj,
+paths `<share>/<path>` like a Synology/QNAP WebDAV root; root lists the shares entered).
+One connection may hold both (sheet tabs [SMB] [WebDAV], separate accounts/passwords
+`pw.<id>` / `pws.<id>`) → `DualFs`: SMB when port 445 answers in 2s, else WebDAV; on
+WebDAV re-checks SMB every 60s and on resume (`nasVia` recheck); a failed call moves to
+the other and retries once (not for ENOENT; writes don't retry). WebDAV address with a
+path (…:5006/tunnel) = that path is put in front of SMB paths. 설정 shows 지금 연결.
 
 ## UI (`src/renderer/src`)
 

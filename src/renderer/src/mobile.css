@@ -399,6 +399,16 @@ body {
   font-weight: 700;
   color: var(--text-dim);
 }
+.conn-tabs {
+  align-self: flex-start;
+  margin-bottom: 4px;
+}
+.conn-tabs .micon {
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+}
+
 .sheet-opt {
   display: flex;
   align-items: center;

@@ -18,7 +18,9 @@ import java.util.List;
 // settings file. JS only ever sees the connections without passwords.
 final class NasStore {
     static final class Conn {
-        String id, name, type, url, host, share, domain, user;
+        // WebDAV: url, user · SMB: host, port, share ("tunnel, photo"), smbUser,
+        // domain. Either or both — both = DualFs (SMB first).
+        String id, name, type, url, host, share, domain, user, smbUser;
         int port;
         boolean insecure; // WebDAV over https with a self-signed certificate
 
@@ -33,6 +35,7 @@ final class NasStore {
             o.put("share", share == null ? "" : share);
             o.put("domain", domain == null ? "" : domain);
             o.put("user", user == null ? "" : user);
+            o.put("smbUser", smbUser == null ? "" : smbUser);
             o.put("insecure", insecure);
             if (withSecretFlag) o.put("hasPassword", password != null && !password.isEmpty());
             return o;
@@ -49,6 +52,7 @@ final class NasStore {
             c.share = o.optString("share");
             c.domain = o.optString("domain");
             c.user = o.optString("user");
+            c.smbUser = o.optString("smbUser");
             c.insecure = o.optBoolean("insecure", false);
             return c;
         }
@@ -87,8 +91,12 @@ final class NasStore {
         return prefs.getString("pw." + id, "");
     }
 
-    // Insert or replace; password == null keeps the stored one.
-    static synchronized void save(Conn c, String password) throws JSONException {
+    static synchronized String smbPassword(String id) {
+        return prefs.getString("pws." + id, "");
+    }
+
+    // Insert or replace; a null password keeps the stored one.
+    static synchronized void save(Conn c, String password, String smbPassword) throws JSONException {
         JSONArray a = new JSONArray();
         boolean found = false;
         for (Conn x : list()) {
@@ -100,12 +108,13 @@ final class NasStore {
         if (!found) a.put(c.toJson(false, null));
         SharedPreferences.Editor e = prefs.edit().putString("conns", a.toString());
         if (password != null) e.putString("pw." + c.id, password);
+        if (smbPassword != null) e.putString("pws." + c.id, smbPassword);
         e.apply();
     }
 
     static synchronized void remove(String id) throws JSONException {
         JSONArray a = new JSONArray();
         for (Conn x : list()) if (!x.id.equals(id)) a.put(x.toJson(false, null));
-        prefs.edit().putString("conns", a.toString()).remove("pw." + id).apply();
+        prefs.edit().putString("conns", a.toString()).remove("pw." + id).remove("pws." + id).apply();
     }
 }

@@ -97,13 +97,18 @@ public class SortaPlugin extends Plugin {
         return v;
     }
 
-    // ---- NAS (WebDAV) — passwords stay here (NasStore), JS never sees them ----
+    // ---- NAS (SMB / WebDAV) — passwords stay here (NasStore), JS never sees them ----
 
     @PluginMethod
     public void nasList(PluginCall call) {
         try {
             JSArray a = new JSArray();
-            for (NasStore.Conn c : NasStore.list()) a.put(c.toJson(true, NasStore.password(c.id)));
+            for (NasStore.Conn c : NasStore.list()) {
+                JSObject j = JSObject.fromJSONObject(c.toJson(true, NasStore.password(c.id)));
+                String sp = NasStore.smbPassword(c.id);
+                j.put("hasSmbPassword", sp != null && !sp.isEmpty());
+                a.put(j);
+            }
             JSObject o = new JSObject();
             o.put("conns", a);
             call.resolve(o);
@@ -115,20 +120,29 @@ public class SortaPlugin extends Plugin {
     private static NasStore.Conn connOf(PluginCall call) {
         JSObject j = call.getObject("conn");
         NasStore.Conn c = NasStore.Conn.fromJson(j == null ? new JSObject() : j);
-        c.type = "webdav";
+        c.type = Vfs.hasSmb(c) ? (Vfs.hasDav(c) ? "both" : "smb") : "webdav";
         return c;
     }
 
     @PluginMethod
     public void nasTest(PluginCall call) {
         bg(call, () -> {
+            // One way at a time ("smb" | "webdav"): the tab being filled in.
             NasStore.Conn c = connOf(call);
-            String pw = call.getString("password");
-            if (pw == null && c.id != null && !c.id.isEmpty()) pw = NasStore.password(c.id);
-            RemoteFs fs = Vfs.create(c, pw);
+            boolean smb = "smb".equals(call.getString("via"));
+            boolean known = c.id != null && !c.id.isEmpty();
+            String pw = call.getString(smb ? "smbPassword" : "password");
+            if (pw == null && known) pw = smb ? NasStore.smbPassword(c.id) : NasStore.password(c.id);
+            RemoteFs fs = smb ? new SmbFs(c, pw) : new WebDavFs(c, pw);
             try {
+                int n = 0;
+                if (smb) {
+                    List<RemoteFs.Entry> shares = fs.list("");
+                    if (shares.isEmpty()) throw new IOException("공유 폴더 이름을 입력하세요");
+                    for (RemoteFs.Entry s : shares) n += fs.list(s.name).size(); // each share must open
+                } else n = fs.list("").size();
                 JSObject o = new JSObject();
-                o.put("count", fs.list("").size());
+                o.put("count", n);
                 call.resolve(o);
             } finally {
                 fs.close();
@@ -141,10 +155,20 @@ public class SortaPlugin extends Plugin {
         bg(call, () -> {
             NasStore.Conn c = connOf(call);
             if (c.id == null || c.id.isEmpty()) c.id = "n" + Long.toString(System.currentTimeMillis(), 36);
-            NasStore.save(c, call.getString("password"));
+            NasStore.save(c, call.getString("password"), call.getString("smbPassword"));
             Vfs.forget(c.id);
             JSObject o = new JSObject();
             o.put("id", c.id);
+            call.resolve(o);
+        });
+    }
+
+    // What a connection uses now ("smb" | "webdav"); recheck looks for SMB again.
+    @PluginMethod
+    public void nasVia(PluginCall call) {
+        bg(call, () -> {
+            JSObject o = new JSObject();
+            o.put("via", Vfs.via(need(call, "id"), Boolean.TRUE.equals(call.getBoolean("recheck", false))));
             call.resolve(o);
         });
     }
