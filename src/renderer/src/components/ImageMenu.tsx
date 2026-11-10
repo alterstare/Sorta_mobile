@@ -14,6 +14,7 @@ import { characterNames, characterTags, copyNames, copyText, createGroup, setSta
 export function useImageMenu(items: ImageItem[]): {
   onContextMenu: (e: { clientX: number; clientY: number }, img: ImageItem) => void
   menu: JSX.Element | null
+  close: () => void
 } {
   const [at, setAt] = useState<{ x: number; y: number; imgs: ImageItem[] } | null>(null)
   const close = useCallback(() => setAt(null), [])
@@ -22,7 +23,7 @@ export function useImageMenu(items: ImageItem[]): {
     const imgs = sel.has(img.id) && sel.size > 1 ? items.filter((i) => sel.has(i.id)) : [img]
     setAt({ x: e.clientX, y: e.clientY, imgs })
   }
-  if (!at) return { onContextMenu, menu: null }
+  if (!at) return { onContextMenu, menu: null, close }
   const imgs = at.imgs
   const fav = imgs.every((i) => i.favorite)
   const groups = useStore.getState().tree?.groups ?? []
@@ -81,7 +82,7 @@ export function useImageMenu(items: ImageItem[]): {
       onClick: () => useStore.getState().setTrashDialog(imgs.map((i) => i.id))
     }
   ]
-  return { onContextMenu, menu: <ContextMenu x={at.x} y={at.y} items={items_} onClose={close} /> }
+  return { onContextMenu, menu: <ContextMenu x={at.x} y={at.y} items={items_} onClose={close} />, close }
 }
 
 // 단체 사진으로 분류: which game (or none) — 정리 폴더/게임/단체 or /단체.

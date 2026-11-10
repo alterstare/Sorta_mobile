@@ -20,7 +20,7 @@ export default function Viewer({ items }: { items: ImageItem[] }): JSX.Element |
   const open = useStore((s) => s.openViewer)
   const settings = useStore((s) => s.settings)
   const img = index === null ? null : items[index]
-  const { onContextMenu, menu } = useImageMenu(items)
+  const { onContextMenu, menu, close: closeMenu } = useImageMenu(items)
   const stageRef = useRef<HTMLDivElement>(null)
   const [dx, setDx] = useState(0)
   const [failed, setFailed] = useState(false)
@@ -31,6 +31,10 @@ export default function Viewer({ items }: { items: ImageItem[] }): JSX.Element |
     setRevealed(false)
     setNewMode(false)
   }, [img?.id])
+  // the hook outlives 크게 보기 (Viewer renders null when closed) — never reopen onto a stale menu
+  useEffect(() => {
+    if (index === null) closeMenu()
+  }, [index, closeMenu])
   useBack(index !== null, () => open(null))
   const go = (d: number): void => {
     if (index === null) return

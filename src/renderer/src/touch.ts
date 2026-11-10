@@ -22,6 +22,7 @@ export function useBack(active: boolean, fn: () => void): void {
 }
 
 export function popBack(): boolean {
+  lpClear() // a back gesture starts as a touch that never ends — drop its long press
   const top = backStack[backStack.length - 1]
   if (!top) return false
   top.fn()
@@ -91,8 +92,10 @@ export function useSwipe(ref: RefObject<HTMLElement | null>, o: SwipeOpts): void
   }, [ref, o.enabled])
 }
 
-// Long press (480ms without moving) → fn; the click that follows is swallowed.
-// One finger at a time, so the state is shared (survives re-renders).
+// Long press (480ms of one finger without moving) → fn; the click that follows
+// is swallowed. touchcancel (e.g. the Android back gesture taking the touch)
+// drops it. A second finger (pinch) cancels it. One finger at a time, so
+// the state is shared (survives re-renders).
 const lp = { timer: null as ReturnType<typeof setTimeout> | null, fired: false, x: 0, y: 0 }
 const lpClear = (): void => {
   if (lp.timer) clearTimeout(lp.timer)
@@ -102,12 +105,14 @@ export function longPress(fn: (e: { clientX: number; clientY: number }) => void)
   onTouchStart: (e: React.TouchEvent) => void
   onTouchMove: (e: React.TouchEvent) => void
   onTouchEnd: () => void
+  onTouchCancel: () => void
   onClickCapture: (e: React.MouseEvent) => void
   onContextMenu: (e: React.MouseEvent) => void
 } {
   return {
     onTouchStart: (e) => {
       lp.fired = false
+      if (e.touches.length > 1) return lpClear()
       const t = e.touches[0]
       lp.x = t.clientX
       lp.y = t.clientY
@@ -120,10 +125,12 @@ export function longPress(fn: (e: { clientX: number; clientY: number }) => void)
       }, 480)
     },
     onTouchMove: (e) => {
+      if (e.touches.length > 1) return lpClear()
       const t = e.touches[0]
       if (Math.abs(t.clientX - lp.x) > 10 || Math.abs(t.clientY - lp.y) > 10) lpClear()
     },
     onTouchEnd: lpClear,
+    onTouchCancel: lpClear,
     onClickCapture: (e) => {
       if (lp.fired) {
         e.stopPropagation()
