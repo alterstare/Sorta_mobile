@@ -56,8 +56,10 @@ function nodeName(n: LibraryNode, tree: ReturnType<typeof useStore.getState>['tr
       return '등급 확인'
     case 'unknown':
       return '미확인'
+    case 'original':
+      return '오리지널'
     case 'other':
-      return '캐릭터 아닌 그림'
+      return '기타'
     case 'groupShot':
       return n.id === undefined ? '단체 사진' : `${tree.series.find((s) => s.id === n.id)?.name ?? ''} · 단체 사진`
     case 'unclassified':

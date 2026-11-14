@@ -1,5 +1,5 @@
 // Selecting (long press in the grid): the count and what to do with them —
-// 캐릭터 지정, 등급, 단체 사진, 캐릭터 아닌 그림, 전체 선택, ✕.
+// 캐릭터 지정, 등급, 단체 사진, 오리지널, 기타, 전체 선택, ✕.
 import { useState } from 'react'
 import type { JSX } from 'react'
 import { createPortal } from 'react-dom'
@@ -7,7 +7,7 @@ import { useStore } from '../store'
 import { useBack } from '../touch'
 import type { Rating } from '../../../shared/types'
 import CharacterPicker from './CharacterPicker'
-import { CloseIcon, GroupsIcon, PersonIcon, PersonOffIcon, SelectAllIcon } from './icons'
+import { CloseIcon, FaceIcon, GroupsIcon, LandscapeIcon, PersonIcon, SelectAllIcon } from './icons'
 import { RATING_LABEL } from './ThumbGrid'
 import { Opt, Sheet } from './Library'
 
@@ -46,11 +46,19 @@ export default function SelectionBar({ allIds }: { allIds: number[] }): JSX.Elem
           </button>
           <button
             className="mini icon"
-            title="캐릭터 아닌 그림"
+            title="오리지널"
             disabled={!ids.length}
-            onClick={() => void window.api.markOther(ids).then(() => done('캐릭터 아닌 그림으로 지정'))}
+            onClick={() => void window.api.markOther(ids, true).then(() => done('오리지널로 지정'))}
           >
-            <PersonOffIcon />
+            <FaceIcon />
+          </button>
+          <button
+            className="mini icon"
+            title="기타"
+            disabled={!ids.length}
+            onClick={() => void window.api.markOther(ids, false).then(() => done('기타로 지정'))}
+          >
+            <LandscapeIcon />
           </button>
           <button className="mini icon" title="전체 선택" onClick={() => setSelected(new Set(allIds))}>
             <SelectAllIcon />

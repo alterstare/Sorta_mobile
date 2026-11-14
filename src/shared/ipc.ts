@@ -85,7 +85,7 @@ export interface Api {
   reviewQueue: (kind: ReviewKind) => Promise<ReviewItem[]>
   confirmCharacters: (imageIds: number[], characterIds: number[]) => Promise<void>
   addCharacter: (imageId: number, characterId: number) => Promise<void>
-  markOther: (imageIds: number[]) => Promise<void>
+  markOther: (imageIds: number[], original?: boolean) => Promise<void> // original: 오리지널, else 기타
   markGroup: (imageIds: number[], series: string | null) => Promise<void>
   setRating: (imageIds: number[], rating: Exclude<Rating, 'unknown'>) => Promise<void>
   // One review decision as a single step: characters (+ rating).

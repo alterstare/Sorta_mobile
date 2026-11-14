@@ -114,17 +114,19 @@ export class Model {
     const affKey = new Map<string, number>()
     const charKey = new Map<string, number>()
     const sids: number[] = []
+    // 표시 이름: shown and sent in edits (PC matches it); the system name stays an alias
+    const shownName = (x: { name: string; display?: string; aliases: string[] }): { name: string; aliases: string[] } =>
+      x.display && x.display !== x.name ? { name: x.display, aliases: [x.name, ...x.aliases] } : { name: x.name, aliases: x.aliases }
     p.series.forEach((s, i) => {
       const sid = i + 1
       sids.push(sid)
-      m.series.set(sid, { id: sid, name: s.name, aliases: s.aliases, tag: s.tag, wiki: s.wiki })
+      m.series.set(sid, { id: sid, ...shownName(s), tag: s.tag, wiki: s.wiki })
       for (const a of s.affiliations) affKey.set(a.key, m.idOf(a.key, 'a'))
       for (const a of s.affiliations)
         m.affs.set(affKey.get(a.key)!, {
           id: affKey.get(a.key)!,
           sid,
-          name: a.name,
-          aliases: a.aliases,
+          ...shownName(a),
           parent: a.parent ? (affKey.get(a.parent) ?? null) : null,
           order: a.order
         })
@@ -133,8 +135,7 @@ export class Model {
         m.chars.set(charKey.get(c.key)!, {
           id: charKey.get(c.key)!,
           key: c.key,
-          name: c.name,
-          aliases: c.aliases,
+          ...shownName(c),
           tag: c.tag,
           sid,
           parent: c.parent ? (charKey.get(c.parent) ?? null) : null,
@@ -382,7 +383,7 @@ export class Model {
     return this.chars.get(id)?.parent ?? id
   }
   private isUnknown(i: MImage): boolean {
-    return i.classified && i.kind !== 'other' && !i.go && !i.rows.some((r) => SORTED(r) || r.st === 'pending')
+    return i.classified && i.kind !== 'other' && i.kind !== 'original' && !i.go && !i.rows.some((r) => SORTED(r) || r.st === 'pending')
   }
 
   tree(ratings: RatingPick[] = ALL_RATINGS, groupFilter: number[] = []): LibraryTree {
@@ -408,7 +409,7 @@ export class Model {
         if (!s) m.set(k, (s = new Set()))
         s.add(id)
       }
-      const counts: TreeCounts = { all: 0, favorite: 0, pending: 0, ratingReview: 0, unknown: 0, other: 0, groupShot: 0, unclassified: 0, setAside: 0 }
+      const counts: TreeCounts = { all: 0, favorite: 0, pending: 0, ratingReview: 0, unknown: 0, original: 0, other: 0, groupShot: 0, unclassified: 0, setAside: 0 }
       for (const i of this.live()) {
         if (!pass(i)) continue
         if (i.aside) {
@@ -420,6 +421,7 @@ export class Model {
         if (i.rows.some((r) => r.st === 'pending')) counts.pending++
         if (i.rr) counts.ratingReview++
         if (this.isUnknown(i)) counts.unknown++
+        if (i.kind === 'original') counts.original++
         if (i.kind === 'other') counts.other++
         if (i.go) counts.groupShot++
         if (!i.classified) counts.unclassified++
@@ -603,6 +605,9 @@ export class Model {
           break
         case 'unknown':
           if (!this.isUnknown(i)) return false
+          break
+        case 'original':
+          if (i.kind !== 'original') return false
           break
         case 'other':
           if (i.kind !== 'other') return false

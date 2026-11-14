@@ -7,7 +7,8 @@ export const PACK_VERSION = 2
 
 export interface PackAffiliation {
   key: string
-  name: string
+  name: string // system name
+  display?: string // 표시 이름 (shown instead)
   aliases: string[]
   parent: string | null
   order: number
@@ -15,6 +16,7 @@ export interface PackAffiliation {
 export interface PackCharacter {
   key: string
   name: string
+  display?: string
   aliases: string[]
   tag: string | null
   parent: string | null // base character key (outfit version)
@@ -22,6 +24,7 @@ export interface PackCharacter {
 }
 export interface PackSeries {
   name: string
+  display?: string
   aliases: string[]
   tag: string | null
   wiki: string | null

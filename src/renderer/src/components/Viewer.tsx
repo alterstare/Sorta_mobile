@@ -1,16 +1,17 @@
 // 크게 보기 (phone): title + ✕, the meta line (wraps), stars · ♥ · ＋ group,
 // the picture (swipe or tap its left / right side to move), then the edits —
-// 캐릭터 추가, the characters, 등급, 단체 사진 / 캐릭터 아닌 그림.
+// 캐릭터 추가, the characters, 등급, 단체 사진 / 오리지널 / 기타.
 import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { useStore } from '../store'
 import { useBack, useSwipe, longPress } from '../touch'
 import type { ImageItem, Rating } from '../../../shared/types'
-import { CheckIcon, CloseIcon, GroupsIcon, KeyboardArrowLeftIcon, KeyboardArrowRightIcon, PersonOffIcon, WifiOffIcon } from './icons'
+import { CheckIcon, CloseIcon, FaceIcon, GroupsIcon, KeyboardArrowLeftIcon, KeyboardArrowRightIcon, LandscapeIcon, WifiOffIcon } from './icons'
 import { RATING_LABEL, fmtSize, safeMode } from './ThumbGrid'
 import { FavGroup, Stars } from './Rate'
 import { useImageMenu } from './ImageMenu'
 import CharacterPicker from './CharacterPicker'
+import { arrowText } from '../arrowText'
 
 const STATUS: Record<string, string> = { auto: '자동', confirmed: '확정', pending: '검토', unknown: '미확인' }
 const RATINGS: Exclude<Rating, 'unknown'>[] = ['general', 'sensitive', 'r18']
@@ -70,7 +71,8 @@ export default function Viewer({ items }: { items: ImageItem[] }): JSX.Element |
             </span>
           ))}
         {img.kind === 'group' && <span>{img.groupSeries ? `단체 사진 · ${img.groupSeries}` : '단체 사진'}</span>}
-        {img.kind === 'other' && <span>캐릭터 아닌 그림</span>}
+        {img.kind === 'original' && <span>오리지널</span>}
+        {img.kind === 'other' && <span>기타</span>}
         <span>
           {index + 1} / {items.length}
         </span>
@@ -106,7 +108,7 @@ export default function Viewer({ items }: { items: ImageItem[] }): JSX.Element |
             <img className={`viewer-img ${blur ? 'blur' : ''}`} src={window.api.thumbUrl(img.thumb ?? '', '')} draggable={false} />
             <span className="viewer-note">
               <WifiOffIcon />
-              {img.path ? '원본을 불러오지 못해 미리 보기를 보여줍니다' : '이 그림의 폴더가 휴대폰에 연결되지 않았습니다 (설정 › 원본 폴더 연결)'}
+              {img.path ? '원본을 불러오지 못해 미리 보기를 보여줍니다' : arrowText('이 그림의 폴더가 휴대폰에 연결되지 않았습니다 (설정 → 원본 폴더 연결)')}
             </span>
           </div>
         )}
@@ -158,9 +160,13 @@ export default function Viewer({ items }: { items: ImageItem[] }): JSX.Element |
             <GroupsIcon />
             단체 사진
           </button>
-          <button className={`mini ${img.kind === 'other' ? 'on' : ''}`} onClick={() => void window.api.markOther([img.id])}>
-            <PersonOffIcon />
-            캐릭터 아닌 그림
+          <button className={`mini ${img.kind === 'original' ? 'on' : ''}`} onClick={() => void window.api.markOther([img.id], true)}>
+            <FaceIcon />
+            오리지널
+          </button>
+          <button className={`mini ${img.kind === 'other' ? 'on' : ''}`} onClick={() => void window.api.markOther([img.id], false)}>
+            <LandscapeIcon />
+            기타
           </button>
         </div>
       </div>

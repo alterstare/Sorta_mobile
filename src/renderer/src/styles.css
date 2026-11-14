@@ -8,6 +8,7 @@
   --line: #dedee5;
   --text: #101114;
   --text-dim: #686b82;
+  --text-tag: #474a5c; /* tag + button text — a step darker than --text-dim */
   --text-hover: #000000;
   --muted: #9497a9;
   --accent: #7132f5;
@@ -31,6 +32,7 @@
   --line: #2b3040;
   --text: #eceef4;
   --text-dim: #9aa0b2;
+  --text-tag: #c3c7d3; /* tag + button text — a step brighter than --text-dim */
   --text-hover: #ffffff;
   --muted: #6f7484;
   --accent: #8b5cf6;
@@ -60,9 +62,17 @@ body {
      (a URL, a title with no spaces) still breaks rather than overflow */
   word-break: keep-all;
   overflow-wrap: break-word;
-  font-family: 'IBM Plex Sans', 'Helvetica Neue', Helvetica, Arial, 'Malgun Gothic', sans-serif;
+  font-family: 'Noto Sans KR', 'Noto Sans JP', 'Noto Sans', 'Malgun Gothic', sans-serif;
   font-size: 14px;
   user-select: none;
+}
+/* Noto Sans everywhere (2026-11-13), buttons and fields included — they
+   don't inherit the page font by default */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 h1,
 h2 {
@@ -101,7 +111,7 @@ h2 {
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--r4);
-  color: var(--text-dim);
+  color: var(--text-tag);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -140,7 +150,7 @@ h2 {
   background: var(--bg-3);
   border: 1px solid var(--line);
   border-radius: var(--r4);
-  color: var(--text-dim);
+  color: var(--text-tag);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -221,7 +231,7 @@ button:active {
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-tag);
   font-size: 20px;
   cursor: pointer;
 }
@@ -459,7 +469,7 @@ button:active {
   border: 1px solid transparent;
   border-radius: var(--r3);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text); /* 목록 글자 = 기본 색, 회색 아님 */
   font-size: 13px;
   font-weight: 600;
   text-align: left;
@@ -504,7 +514,7 @@ button:active {
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-tag);
   font-size: 16px;
   cursor: pointer;
 }
@@ -559,7 +569,7 @@ button:active {
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-tag);
   cursor: pointer;
 }
 .search-clear:hover,
@@ -774,14 +784,13 @@ button:active {
   max-width: 480px;
   padding: 10px 10px 10px 14px;
   border: 1px solid var(--line);
-  border-left: 4px solid var(--accent);
   border-radius: var(--r4);
   background: var(--bg-1);
   box-shadow: var(--shadow-subtle);
   font-size: 13px;
 }
 .toast.err {
-  border-left-color: var(--danger);
+  border-color: var(--danger);
 }
 /* Second toolbar row (view options): tighter, no top padding gap. */
 .toolbar.sub {
@@ -837,7 +846,7 @@ button:active {
   border: none;
   border-radius: 3px;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-tag);
   cursor: pointer;
 }
 .stepper-btn .micon {
@@ -865,7 +874,7 @@ button:active {
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-tag);
   font-size: 16px;
   cursor: pointer;
 }
@@ -900,7 +909,7 @@ button:active {
   border-radius: 999px;
   background: var(--bg-2);
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--text-tag);
 }
 .tag-chip button {
   width: 18px;
@@ -911,7 +920,7 @@ button:active {
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-tag);
   cursor: pointer;
 }
 .tag-chip button:hover {
@@ -978,7 +987,7 @@ button:active {
   object-fit: contain;
 }
 .review-stage .viewer-arrow {
-  color: var(--text-dim);
+  color: var(--text-tag);
 }
 .review-stage .viewer-arrow:hover:not(:disabled) {
   background: var(--accent-hover);
@@ -1270,7 +1279,7 @@ button:active {
   color: var(--accent);
 }
 .viewer .edit-bar .flat-group .mini:not(.on) {
-  color: var(--text-dim);
+  color: var(--text-tag);
 }
 .viewer .edit-bar .flat-group > * + *::before {
   background: var(--line);
@@ -1367,7 +1376,7 @@ kbd {
 }
 .btn:not(.primary) kbd {
   background: var(--bg-3);
-  color: var(--text-dim);
+  color: var(--text-tag);
 }
 .tree-item.variant {
   padding-left: 52px;
@@ -1416,7 +1425,7 @@ kbd {
   border-radius: var(--r3);
   background: var(--bg-1);
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--text-tag);
   cursor: pointer;
 }
 .outfit-opt::before {
@@ -2276,7 +2285,7 @@ select.tag-input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
+  color: var(--text-tag);
   font-size: 14px;
   cursor: pointer;
 }
@@ -3338,4 +3347,18 @@ select.tag-input {
   flex-direction: column;
   overflow-y: auto;
   min-height: 0;
+}
+
+/* Arrow icons in UI text (arrowText): sized and set on the text's baseline */
+.micon.txt-arrow {
+  width: 1.05em;
+  height: 1.05em;
+  margin: 0 0.12em;
+  vertical-align: -0.16em;
+}
+.micon.txt-key {
+  width: 1.25em;
+  height: 1.25em;
+  margin: 0 -0.1em;
+  vertical-align: -0.3em;
 }

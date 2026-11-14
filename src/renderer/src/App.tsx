@@ -13,6 +13,7 @@ import MenuDrawer from './components/MenuDrawer'
 import ActivityBar from './components/ActivityBar'
 import { GroupShotDialog, NewGroupDialog, TrashDialog } from './components/ImageMenu'
 import { native } from '../../backend/native'
+import { arrowText } from './arrowText'
 
 // 관리: 캐릭터 / 소속 tabs (under the page title).
 function CharactersView(): JSX.Element {
@@ -130,7 +131,7 @@ export default function App(): JSX.Element {
       <TrashDialog />
       {toast && (
         <div className={`toast ${toast.ok ? '' : 'err'}`} onClick={dismissToast}>
-          <span>{toast.message}</span>
+          <span>{arrowText(toast.message)}</span>
         </div>
       )}
     </div>

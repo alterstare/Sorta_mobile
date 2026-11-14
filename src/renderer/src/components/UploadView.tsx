@@ -9,6 +9,7 @@ import type { UploadItem } from '../../../shared/ipc'
 import { CheckCircleIcon, CloudUploadIcon, DeleteIcon, RefreshIcon, SettingsIcon } from './icons'
 import { Sheet } from './Library'
 import { useBack } from '../touch'
+import { arrowText } from '../arrowText'
 
 const COLS = 3
 const PHONE_W = 420
@@ -89,7 +90,7 @@ export default function UploadView(): JSX.Element {
               </div>
             </>
           ) : (
-            <div className="row-desc">설정 › 올리기에서 휴대폰 폴더와 NAS에 올릴 위치를 정하세요.</div>
+            <div className="row-desc">{arrowText('설정 → 올리기에서 휴대폰 폴더와 NAS에 올릴 위치를 정하세요.')}</div>
           )}
         </div>
         <div className="flat-group">
@@ -144,9 +145,6 @@ export default function UploadView(): JSX.Element {
           </div>
           <div className="sheet-foot flat-group">
             <span className="spacer" />
-            <button className="mini" onClick={() => setAsk(false)}>
-              취소
-            </button>
             <button
               className="mini danger"
               onClick={() => {
@@ -156,6 +154,9 @@ export default function UploadView(): JSX.Element {
             >
               <DeleteIcon />
               삭제
+            </button>
+            <button className="mini" onClick={() => setAsk(false)}>
+              취소
             </button>
           </div>
         </Sheet>

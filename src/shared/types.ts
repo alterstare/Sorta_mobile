@@ -2,7 +2,7 @@
 
 export type Rating = 'general' | 'sensitive' | 'r18' | 'unknown'
 export type MatchStatus = 'auto' | 'confirmed' | 'pending' | 'unknown'
-export type ImageKind = 'character' | 'other' | 'unknown' | 'group' // group: 단체 사진으로만 분류 (shown; stored as group_only)
+export type ImageKind = 'character' | 'original' | 'other' | 'unknown' | 'group' // group: 단체 사진으로만 분류 (shown; stored as group_only)
 export type SafeMode = 'show' | 'blur' | 'hide'
 export type AssistMode = 'none' | 'pixai' | 'pixai+camie'
 export type ModelId = 'wd' | 'pixai' | 'camie' | 'series' | 'ccip'
@@ -48,6 +48,7 @@ export interface Settings {
   libFavOnly: boolean
   libSort: SortKey
   libDir: SortDir
+  treeSort: 'name' | 'count' // 메뉴 tree: games / characters by name or image count
   thumbSize: 's' | 'm' | 'l'
 }
 
@@ -84,7 +85,8 @@ export type LibraryNode =
   | { type: 'pending' } // has a character awaiting review
   | { type: 'ratingReview' } // rating fell in a borderline band
   | { type: 'unknown' } // classified, no character found
-  | { type: 'other' } // marked "캐릭터 아닌 그림"
+  | { type: 'original' } // marked "오리지널" (original character)
+  | { type: 'other' } // marked "기타" (scenery, no people)
   | { type: 'groupShot'; id?: number } // 단체 사진으로만 분류 (id: of one game)
   | { type: 'unclassified' } // imported, tagger not run yet
 
@@ -136,6 +138,7 @@ export type TreeCounts = {
   pending: number
   ratingReview: number
   unknown: number
+  original: number
   other: number
   groupShot: number
   unclassified: number

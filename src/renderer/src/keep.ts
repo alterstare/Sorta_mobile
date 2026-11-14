@@ -1,9 +1,11 @@
 // useState that outlives the component: the value lives in the store under
 // `key`, so leaving a view (another tab, settings…) and coming back keeps
 // results of slow jobs, positions and selections. Also, a job that finishes
-// while its view is closed still lands here. Memory only (not saved to disk).
-import { useCallback, useRef } from 'react'
+// while its view is closed still lands here. Memory only, except the entries
+// session.ts writes to disk for a restart (scroll tops, 검토 place …).
+import { useCallback, useEffect, useRef } from 'react'
 import { useStore } from './store'
+import { onLeave } from './session'
 
 type SetState<T> = (v: T | ((prev: T) => T)) => void
 
@@ -28,6 +30,14 @@ export function useKept<T>(key: string, initial: T): [T, SetState<T>] {
 // between two scrolling pages, e.g. 미확인 list ↔ group).
 export function useKeptScroll<T extends HTMLElement>(key: string): (el: T | null) => void {
   const cur = useRef<{ el: T; last: number; on: () => void } | null>(null)
+  useEffect(
+    () =>
+      onLeave(() => {
+        const c = cur.current
+        if (c) useStore.setState((s) => ({ kept: { ...s.kept, [`scroll.${key}`]: c.last } }))
+      }),
+    [key]
+  )
   return useCallback(
     (el: T | null) => {
       const k = `scroll.${key}`

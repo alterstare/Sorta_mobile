@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   libFavOnly: false,
   libSort: 'date',
   libDir: 'desc',
+  treeSort: 'name',
   thumbSize: 's'
 }
 

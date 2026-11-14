@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { readSession, writeSession } from './session'
 import type { JobSummary, LibStatus, UpdateStatus } from '../../shared/ipc'
 import type { ImageItem, LibraryFilter, LibraryNode, LibraryTree, ProgressEvent, RatingPick, ReviewKind, Settings, SortDir, SortKey } from '../../shared/types'
 
@@ -68,6 +69,8 @@ interface State {
 }
 
 let librarySeq = 0
+// 크게 보기 picture to reopen after a restart, until the list holding it is loaded
+let pendingViewer: number | null = null
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
 export const useStore = create<State>((set, get) => ({
@@ -117,10 +120,22 @@ export const useStore = create<State>((set, get) => ({
   },
   load: async () => {
     const settings = await window.api.getSettings()
+    // the app was killed in the background → back where the user was
+    const ses = readSession()
+    pendingViewer = ses?.viewerId ?? null
     set({
       settings,
       status: window.api.status(),
-      filter: { ...get().filter, ratings: settings.libRatings, groups: settings.libGroups, favOnly: settings.libFavOnly, sort: settings.libSort, dir: settings.libDir }
+      filter: {
+        ...get().filter,
+        ...(ses ? { node: ses.node, q: ses.q, seed: ses.seed ?? get().filter.seed } : {}),
+        ratings: settings.libRatings,
+        groups: settings.libGroups,
+        favOnly: settings.libFavOnly,
+        sort: settings.libSort,
+        dir: settings.libDir
+      },
+      ...(ses ? { view: ses.view, reviewKind: ses.reviewKind, charTab: ses.charTab, kept: { ...get().kept, ...ses.kept } } : {})
     })
     await get().refreshLibrary()
   },
@@ -154,6 +169,11 @@ export const useStore = create<State>((set, get) => ({
     const ids = new Set(images.map((i) => i.id))
     const selected = new Set([...get().selected].filter((id) => ids.has(id)))
     set({ tree, images, selected, imagesKey: JSON.stringify(f), libraryVersion: get().libraryVersion + 1 })
+    if (pendingViewer !== null && images.length) {
+      const i = images.findIndex((x) => x.id === pendingViewer)
+      pendingViewer = null
+      if (i >= 0 && get().viewerIndex === null) set({ viewerIndex: i })
+    }
   },
   setNode: (node) => {
     set({ filter: { ...get().filter, node }, viewerIndex: null, selected: new Set(), selecting: false, menuOpen: false, view: 'library' })
@@ -204,3 +224,20 @@ export const useStore = create<State>((set, get) => ({
     void get().refreshLibrary()
   }
 }))
+
+// Every change of where the user is goes to disk (session.ts); nothing before
+// load() has laid the saved one back.
+useStore.subscribe((s) => {
+  if (!s.settings) return
+  const open = s.viewerIndex === null ? null : (s.images[s.viewerIndex]?.id ?? null)
+  writeSession({
+    view: s.view,
+    reviewKind: s.reviewKind,
+    charTab: s.charTab,
+    node: s.filter.node,
+    q: s.filter.q,
+    seed: s.filter.seed,
+    viewerId: open ?? pendingViewer,
+    kept: s.kept
+  })
+})

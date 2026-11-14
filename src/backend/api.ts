@@ -221,10 +221,10 @@ const api: Api = {
       i.go = 0
       i.gs = null
     }),
-  markOther: async (imageIds) =>
-    change('캐릭터 아닌 그림으로 지정', imageIds, (i) => {
+  markOther: async (imageIds, original) =>
+    change(original ? '오리지널로 지정' : '기타로 지정', imageIds, (i) => {
       i.rows = []
-      i.kind = 'other'
+      i.kind = original ? 'original' : 'other'
       i.go = 0
       i.gs = null
     }),

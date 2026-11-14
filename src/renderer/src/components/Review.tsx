@@ -1,17 +1,18 @@
 // 검토 (phone): ↶ ↷ … ✕ on top, the characters already recognized under it,
 // the picture (swipe left = 건너뛰기, swipe right = 확정), then 직접 입력, the
 // candidates (함께 있을 수 있는 캐릭터 — 2.5 rows, scroll for more), 등급,
-// 단체 사진 / 캐릭터 아닌 그림 and 현재 옵션으로 확정.
+// 단체 사진 / 오리지널 / 기타 and 현재 옵션으로 확정.
 // 등급 확인 is the same screen with the three ratings instead.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { useStore } from '../store'
 import { useKept } from '../keep'
+import { orderQueue, skipItem } from '../skipped'
 import { useSwipe } from '../touch'
 import type { Rating, ReviewItem } from '../../../shared/types'
 import CharacterPicker from './CharacterPicker'
 import type { PickedCharacter } from './CharacterPicker'
-import { CheckIcon, CloseIcon, GroupsIcon, PersonOffIcon, RedoIcon, SkipNextIcon, UndoIcon } from './icons'
+import { CheckIcon, CloseIcon, FaceIcon, GroupsIcon, LandscapeIcon, RedoIcon, SkipNextIcon, UndoIcon } from './icons'
 import { RATING_LABEL, safeMode } from './ThumbGrid'
 
 type R = Exclude<Rating, 'unknown'>
@@ -42,7 +43,7 @@ export default function Review(): JSX.Element {
   const [leaving, setLeaving] = useState<'left' | 'right' | null>(null)
   const item = items[Math.min(index, items.length - 1)] as ReviewItem | undefined
 
-  const load = useCallback(async () => setItems(await window.api.reviewQueue(kind)), [kind, setItems])
+  const load = useCallback(async () => setItems(orderQueue(kind, await window.api.reviewQueue(kind))), [kind, setItems])
   useEffect(() => {
     void load()
   }, [load, libraryVersion])
@@ -91,9 +92,17 @@ export default function Review(): JSX.Element {
     await window.api.decide(item.id, all, item.rating !== rating ? rating : null)
     return true
   }
-  const skip = (d = 1): void => setIndex((i) => (items.length ? (((Math.min(i, items.length - 1) + d) % items.length) + items.length) % items.length : 0))
-  const markOther = (): void => {
-    if (item) void window.api.markOther([item.id])
+  // 건너뛰기: the picture goes to the back of the queue; the next one takes
+  // its place (from the last place: back to the first).
+  const skip = (): void => {
+    if (!item) return
+    const i = Math.min(index, items.length - 1)
+    const next = skipItem(kind, items, item.id)
+    setItems(next)
+    if (i >= next.length - 1) setIndex(0)
+  }
+  const markOther = (original: boolean): void => {
+    if (item) void window.api.markOther([item.id], original)
   }
   const markGroup = (): void => {
     if (!item) return
@@ -113,7 +122,7 @@ export default function Review(): JSX.Element {
     enabled: !!item,
     onMove: setDx,
     onLeft: () => {
-      if (items.length > 1) fly('left', () => skip(1))
+      if (items.length > 1) fly('left', skip)
       else showToast({ ok: true, message: '건너뛸 다른 그림이 없습니다' })
     },
     onRight: () => {
@@ -281,10 +290,16 @@ export default function Review(): JSX.Element {
                     <GroupsIcon />
                     단체 사진
                   </button>
-                  <button className="mini" onClick={markOther}>
-                    <PersonOffIcon />
-                    캐릭터 아닌 그림
+                  <button className="mini" onClick={() => markOther(true)}>
+                    <FaceIcon />
+                    오리지널
                   </button>
+                  <button className="mini" onClick={() => markOther(false)}>
+                    <LandscapeIcon />
+                    기타
+                  </button>
+                </div>
+                <div className="flat-group review-row">
                   <button className="mini" onClick={() => skip()}>
                     <SkipNextIcon />
                     건너뛰기

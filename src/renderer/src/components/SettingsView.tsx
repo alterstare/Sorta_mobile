@@ -10,6 +10,7 @@ import { CheckIcon, FolderIcon, FolderOpenIcon, KeyboardArrowLeftIcon, LanIcon, 
 import { Sheet } from './Library'
 import Stepper from './Stepper'
 import { nasParts, nasPath } from '../../../backend/native'
+import { arrowText } from '../arrowText'
 
 // "/nas/<id>/photo/sorted" → "photo/sorted" (the connection named once above)
 const shown = (p: string): string => (p.startsWith('/nas/') ? '/' + nasParts(p).rel : p)
@@ -104,7 +105,7 @@ export default function SettingsView(): JSX.Element {
         <div className="row">
           <div className="row-text">
             <div className="row-title selectable">{settings.organizeDir ? shown(settings.organizeDir) : '정하지 않았습니다'}</div>
-            <div className="row-desc">PC의 Sorta 설정 › 정리 폴더와 같은 NAS 폴더를 고르세요. 그 안의 .sorta 폴더에 분류 정보 파일이 있습니다.</div>
+            <div className="row-desc">{arrowText('PC의 Sorta 설정 → 정리 폴더와 같은 NAS 폴더를 고르세요. 그 안의 .sorta 폴더에 분류 정보 파일이 있습니다.')}</div>
           </div>
           <div className="flat-group">
             <button className="mini" disabled={!settings.nasId} onClick={() => pick('정리 폴더', settings.organizeDir, (p) => void saveSettings({ organizeDir: p }))}>
@@ -146,7 +147,7 @@ export default function SettingsView(): JSX.Element {
               <div key={r} className="row">
                 <div className="row-text">
                   <div className="row-title selectable">{r}</div>
-                  <div className="row-desc">{cur ? `→ ${shown(cur)}` : '연결하지 않았습니다'}</div>
+                  <div className="row-desc">{cur ? `연결: ${shown(cur)}` : '연결하지 않았습니다'}</div>
                 </div>
                 <div className="row-stack">
                   <div className="flat-group">

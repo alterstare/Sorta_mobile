@@ -196,7 +196,7 @@ body {
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-tag);
   font-size: 20px;
 }
 .search-row .search-sort {
@@ -528,6 +528,9 @@ body {
 .m-viewer .viewer-meta {
   display: flex;
   flex-wrap: wrap;
+  /* one baseline: a part with Hangul (fallback font) otherwise sits lower
+     than the digits-only ones (크기, n / N) */
+  align-items: baseline;
   gap: 2px 10px;
   padding: 0 14px;
   font-size: 12px;
@@ -1106,7 +1109,7 @@ body {
 }
 /* 크게 보기 follows the theme on the phone (the PC's is always dark) */
 .m-viewer .flat-group .mini:not(.on) {
-  color: var(--text-dim);
+  color: var(--text-tag);
 }
 .m-viewer .flat-group > * + *::before {
   background: var(--line);
@@ -1148,7 +1151,7 @@ button:focus {
   padding: 0 12px;
   background: transparent;
   border: none;
-  color: var(--text-dim);
+  color: var(--text-tag);
   font-weight: 700;
   box-shadow: none;
 }
@@ -1311,7 +1314,7 @@ body:has(.m-viewer) .toast {
 .viewer-edit .edit-chars .edit-confirm {
   margin-left: auto;
 }
-/* 등급 · 단체 사진 / 캐릭터 아닌 그림 (크게 보기 + 검토): centred, more room */
+/* 등급 · 단체 사진 / 오리지널 / 기타 (크게 보기 + 검토): centred, more room */
 .viewer-edit .edit-row,
 .review-bottom .review-row {
   justify-content: center;
@@ -1352,4 +1355,108 @@ body:has(.m-viewer) .toast {
 }
 body:has(.m-review) .toast {
   bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+/* ===== Confirm / notice dialogs — Halftone mobile style (every app; rule in
+   ~/.claude/CLAUDE.md): the title big and left-aligned at the top, the
+   explanation small and left-aligned under it, small text buttons at the
+   bottom right in the order action (저장 / 삭제) · middle (저장 안 함) · close.
+   Colour: nothing is coloured except the main action — purple when it is
+   positive (저장 / 확인), red when it loses something (삭제 / 덮어쓰기).
+   Last in the file so it beats the older dialog rules above. ===== */
+.modal-back .modal.small {
+  text-align: left;
+  padding: 22px 22px 12px;
+  border: none;
+  background: var(--bg-1);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+}
+.modal.small .modal-head h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text);
+  text-align: left;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.modal.small > .row-desc {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-dim);
+  text-align: left;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.modal.small .modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-right: -8px;
+}
+.modal.small .modal-foot .btn {
+  flex: none;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--r3);
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.modal.small .modal-foot .btn::before {
+  display: none;
+}
+.modal.small .modal-foot .btn:hover:not(:disabled) {
+  background: var(--bg-3);
+  color: var(--text);
+  filter: none;
+}
+.modal.small .modal-foot .btn.primary,
+.modal.small .modal-foot .btn.primary:hover:not(:disabled) {
+  color: var(--accent);
+}
+.modal.small .modal-foot .btn.danger,
+.modal.small .modal-foot .btn.danger:hover:not(:disabled) {
+  color: var(--danger);
+}
+.modal.small .modal-foot .btn:active:not(:disabled) {
+  background: var(--bg-3);
+}
+.modal.small {
+  gap: 0;
+}
+.modal.small .modal-head {
+  margin-bottom: 6px;
+}
+.modal.small > :not(.modal-head):not(.row-desc):not(.modal-foot) {
+  margin-bottom: 12px;
+}
+.modal.small .modal-foot .btn .micon {
+  display: none;
+}
+
+/* 메뉴 tree: 정렬 (이름순 / 개수순) left, 총 n명 (characters) right, above the games */
+.tree-sort {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -2px 0 2px;
+}
+.tree-total {
+  padding-right: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
 }

@@ -53,6 +53,10 @@ user's spec (`Viewer.tsx`, `Review.tsx`: swipe left 건너뛰기, right 확정; 
 2.5 rows). 관리: 캐릭터 (이름 · 소속) and 소속 (indented tree, 미지정 sticky, tap to
 assign, add / rename). Phone styles: `mobile.css` (after the desktop `styles.css`).
 Android back: `touch.ts` `useBack` stack → App.
+Restart restore (`session.ts`): Android may kill the app in the background; view, list
+(node / 검색 / random seed), 크게 보기 picture (by id), scroll tops, 검토 place and folded
+tree rows go to localStorage `sorta-session` on every change (scroll on leave — pause /
+hidden) and `store.load()` lays them back.
 
 ## Build / test
 

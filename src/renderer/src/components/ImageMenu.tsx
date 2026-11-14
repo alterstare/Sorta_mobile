@@ -135,12 +135,12 @@ export function GroupShotDialog(): JSX.Element | null {
           ))}
         </select>
         <div className="modal-foot">
-          <button className="btn" onClick={close}>
-            취소
-          </button>
           <button className="btn primary" onClick={() => void go()}>
             <GroupsIcon />
             단체 사진으로 분류
+          </button>
+          <button className="btn" onClick={close}>
+            취소
           </button>
         </div>
       </div>
@@ -173,11 +173,11 @@ export function TrashDialog(): JSX.Element | null {
           휴대폰 목록에서 바로 빠지고, PC의 Sorta가 이 변경을 받으면 원본을 정리 폴더의 삭제됨 폴더로 옮깁니다. 휴대폰에서는 되돌릴 수 없고, 삭제됨 폴더에서 꺼내면 돌아옵니다.
         </div>
         <div className="modal-foot">
-          <button className="btn" onClick={close}>
-            취소
-          </button>
           <button className="btn danger" onClick={() => void go()}>
             삭제
+          </button>
+          <button className="btn" onClick={close}>
+            취소
           </button>
         </div>
       </div>
@@ -234,11 +234,11 @@ export function NewGroupDialog(): JSX.Element | null {
         />
         {!rename && <div className="row-desc">{ids?.length ? `선택한 그림 ${ids.length}장을 이 그룹에 넣습니다.` : '빈 그룹을 만듭니다.'}</div>}
         <div className="modal-foot">
-          <button className="btn" onClick={close}>
-            취소
-          </button>
           <button className="btn primary" disabled={!name.trim()} onClick={() => void done()}>
             {rename ? '바꾸기' : '만들기'}
+          </button>
+          <button className="btn" onClick={close}>
+            취소
           </button>
         </div>
       </div>
