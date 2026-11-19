@@ -30,9 +30,12 @@ const isDone = (d: Done, f: { path: string; size: number; mtime: number }): bool
   return !!x && x.size === f.size && x.mtime === f.mtime
 }
 
+// Without 모든 파일 접근 Android 11+ hides other apps' pictures from the
+// listing (no error, just an empty folder), so ask before reading it.
 export async function uploadList(): Promise<UploadItem[]> {
   const s = loadSettings()
   if (!s.uploadFrom) return []
+  await ensureAccess()
   const { files } = await native.listImages({ dir: s.uploadFrom })
   const d = loadDone()
   return files.sort((a, b) => b.mtime - a.mtime).map((f) => ({ ...f, uploaded: isDone(d, f) }))
@@ -40,7 +43,7 @@ export async function uploadList(): Promise<UploadItem[]> {
 
 async function ensureAccess(): Promise<void> {
   if ((await native.storageStatus()).granted) return
-  if (!(await native.requestStorage()).granted) throw new Error('파일 접근 권한이 필요합니다 (설정 › 앱 › Sorta › 권한)')
+  if (!(await native.requestStorage()).granted) throw new Error('파일 접근 권한이 필요합니다 (설정 › 앱 › Sorta › 권한 › 모든 파일에 접근)')
 }
 
 // A free name in the NAS folder: same name + same size = already there.
@@ -60,7 +63,6 @@ export function uploadAll(): Promise<JobSummary> {
   return job('NAS에 올리기', async (report, signal) => {
     const s = loadSettings()
     if (!s.uploadFrom || !s.uploadTo) throw new Error('설정에서 올릴 폴더와 NAS에 올릴 위치를 정하세요')
-    await ensureAccess()
     const todo = (await uploadList()).filter((f) => !f.uploaded)
     if (!todo.length) return { ok: true, message: '올릴 그림이 없습니다' }
     await native.fsMkdir({ path: s.uploadTo })
@@ -112,7 +114,6 @@ export function uploadAll(): Promise<JobSummary> {
 // Only pictures the NAS really has (size checked again now).
 export function deleteUploaded(): Promise<JobSummary> {
   return job('올린 그림 삭제', async (report) => {
-    await ensureAccess()
     const d = loadDone()
     const list = (await uploadList()).filter((f) => f.uploaded)
     if (!list.length) return { ok: true, message: '삭제할 그림이 없습니다 (올리기를 마친 그림만 지웁니다)' }

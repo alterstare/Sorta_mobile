@@ -7,7 +7,8 @@ import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { useBack } from '../touch'
 import type { LibraryNode, RatingPick, SafeMode, SortKey } from '../../../shared/types'
-import { AddIcon, ArrowDownIcon, ArrowUpIcon, CheckIcon, CloseIcon, FavoriteIcon, RefreshIcon, SearchIcon, SettingsIcon, SortIcon } from './icons'
+import { AddIcon, ArrowDownIcon, ArrowUpIcon, CheckIcon, CloseIcon, FavoriteIcon, FolderIcon, PersonIcon, RefreshIcon, SearchIcon, SettingsIcon, SortIcon } from './icons'
+import { collect, hitKey, match } from '../suggest'
 import ThumbGrid, { safeMode } from './ThumbGrid'
 import type { ThumbSize } from './ThumbGrid'
 import Viewer from './Viewer'
@@ -94,7 +95,7 @@ function nodeName(n: LibraryNode, tree: ReturnType<typeof useStore.getState>['tr
 }
 
 export default function Library(): JSX.Element {
-  const { settings, saveSettings, setView, filter, setRatings, setSort, setDir, setGroupFilter, setFavOnly, setNode, setQuery, reshuffle, images, tree, status } =
+  const { settings, saveSettings, setView, filter, setRatings, setSort, setDir, setGroupFilter, setFavOnly, setNode, setQuery, goToNode, reshuffle, images, tree, status } =
     useStore()
   const groups = tree?.groups ?? []
   const items = useMemo(() => images.filter((i) => safeMode(i, settings) !== 'hide'), [images, settings])
@@ -104,6 +105,18 @@ export default function Library(): JSX.Element {
   const [moreOpen, setMoreOpen] = useState(false)
   useBack(sortOpen, () => setSortOpen(false))
   useBack(moreOpen, () => setMoreOpen(false))
+  // Suggestions while typing: tap one = open that node; the last row (or the
+  // keyboard's search key) = the plain text search.
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [suggest, setSuggest] = useState(false)
+  const allHits = useMemo(() => (tree ? collect(tree) : []), [tree])
+  const hits = useMemo(() => match(allHits, q), [allHits, q])
+  const showSuggest = suggest && !!q.trim()
+  const closeSuggest = (): void => {
+    setSuggest(false)
+    inputRef.current?.blur()
+  }
+  useBack(showSuggest, closeSuggest)
 
   const ratings = filter.ratings
   const isAll = ALL.every((r) => ratings.includes(r))
@@ -141,16 +154,20 @@ export default function Library(): JSX.Element {
             onSubmit={(e) => {
               e.preventDefault()
               setQuery(q.trim())
-              ;(document.activeElement as HTMLElement | null)?.blur()
+              closeSuggest()
             }}
           >
             <SearchIcon />
             <input
+              ref={inputRef}
               value={q}
               placeholder="캐릭터 · 게임 · 파일 이름 검색"
               enterKeyHint="search"
+              onFocus={() => setSuggest(true)}
+              onBlur={() => setSuggest(false)}
               onChange={(e) => {
                 setQ(e.target.value)
+                setSuggest(true)
                 if (!e.target.value) setQuery('')
               }}
             />
@@ -163,6 +180,38 @@ export default function Library(): JSX.Element {
               <SortIcon />
             </button>
           </form>
+          {showSuggest && (
+            <div className="picker-list lib-suggest">
+              {hits.map((h) => (
+                <button
+                  key={hitKey(h)}
+                  className="picker-opt"
+                  onMouseDown={(e) => e.preventDefault()} // keep focus: the blur would close the list before the tap
+                  onClick={() => {
+                    closeSuggest()
+                    setQ('')
+                    goToNode(h.node)
+                  }}
+                >
+                  {h.kind === 'char' ? <PersonIcon /> : h.kind === 'group' ? <FolderIcon /> : null}
+                  <span className="picker-name">{h.name}</span>
+                  <span className="picker-series">{h.path}</span>
+                  <span className="picker-n">{h.count.toLocaleString()}</span>
+                </button>
+              ))}
+              <button
+                className="picker-opt new"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setQuery(q.trim())
+                  closeSuggest()
+                }}
+              >
+                <SearchIcon />
+                <span className="picker-name">이름 · 파일 이름에 “{q.trim()}” 들어간 그림 찾기</span>
+              </button>
+            </div>
+          )}
           <div className="chips flat-group">
             <button className="mini icon" title={filter.dir === 'asc' ? '오름차순' : '내림차순'} onClick={() => setDir(filter.dir === 'asc' ? 'desc' : 'asc')}>
               {filter.dir === 'asc' ? <ArrowUpIcon /> : <ArrowDownIcon />}

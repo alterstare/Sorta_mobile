@@ -162,8 +162,43 @@ body {
   min-height: 0;
 }
 .lib-head {
+  position: relative;
   padding: 8px 10px 0;
   background: var(--bg);
+}
+/* search suggestions drop over the chips and the grid */
+.lib-suggest {
+  position: absolute;
+  top: 52px;
+  left: 10px;
+  right: 10px;
+  max-height: 55vh;
+  z-index: 30;
+}
+.lib-suggest .picker-opt .micon {
+  flex: none;
+  font-size: 16px;
+  color: var(--text-dim);
+}
+.lib-suggest .picker-opt.new .micon {
+  color: var(--accent);
+}
+.lib-suggest .picker-name {
+  flex: none;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-suggest .picker-series {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-suggest .picker-opt.new .picker-name {
+  flex: 1;
+  max-width: none;
 }
 .search-row {
   display: flex;
